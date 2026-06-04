@@ -1,24 +1,21 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.0 → 0.1.0 (re-versioned by user direction: constitution is
-  still a DRAFT; v1.0.0 is reserved for formal ratification)
-Modified principles: none (content unchanged from initial draft)
+Version change: 0.1.0 → 0.2.0 (MINOR: new principle added)
+Modified principles:
+  - II. Players First (safety vow: added cross-reference distinguishing
+    safety from security)
 Added sections:
-  - Core Principles (7): I. Complete Game First; II. Players First;
-    III. Open Ecosystem, No Lock-In; IV. Spec-First, Centrally Governed;
-    V. Tested to Be Trusted; VI. Docs as a Feature; VII. Simplicity & YAGNI
-  - Engine Identity
-  - Development Workflow
-  - Governance
-Removed sections: none (all template placeholders filled)
+  - VIII. Secure by Default (new principle: protection of data, identities,
+    and credentials — distinct from safety/wellbeing in Principle II)
+Removed sections: none
 Templates requiring updates:
-  - ✅ .specify/templates/tasks-template.md (tests were "OPTIONAL"; now required
-    per Principle V)
   - ✅ .specify/templates/plan-template.md (Constitution Check gate already
     generic; gates derive from this document — no edit needed)
   - ✅ .specify/templates/spec-template.md (no constitution-specific sections
     required — no edit needed)
+  - ✅ .specify/templates/tasks-template.md (security hardening already present
+    in Polish phase; Principle V references unchanged — no edit needed)
 Follow-up TODOs:
   - TODO(RATIFICATION_DATE): set when the draft is formally ratified as v1.0.0
 -->
@@ -73,7 +70,8 @@ cost to creator convenience or project growth:
   beyond what the experience genuinely requires.
 - **Safety & dignity**: Moderation and safety tooling are core engine
   features. Every world MUST ship with real tools to protect player
-  wellbeing; safety is never an optional add-on.
+  wellbeing; safety is never an optional add-on. (Safety concerns wellbeing
+  within play; protection of data and accounts is security — Principle VIII.)
 
 **Rationale**: Creators reach players through the engine. An engine that
 permits player-hostile worlds damages every world built on it.
@@ -147,6 +145,30 @@ Build the simplest thing that serves the experience.
 **Rationale**: A small, opinionated engine maintained by a community must
 spend its complexity budget only where the experience demands it.
 
+### VIII. Secure by Default
+
+Security protects what players, creators, and operators entrust to a world —
+their data, identities, and credentials. It is distinct from safety
+(Principle II), which protects wellbeing within play; security guards against
+compromise from outside the rules of play.
+
+- The engine MUST protect accounts, credentials, and personal data against
+  compromise. Authentication and data protection are engine responsibilities,
+  never left for creators to build or bolt on.
+- Worlds are hosted by hobbyists (Engine Identity): a default deployment
+  MUST be secure without requiring security expertise from the operator.
+  Insecure configurations require deliberate, documented opt-out — the
+  secure path is always the easy path.
+- Data collection is minimized: the engine MUST NOT collect or retain more
+  personal data than the experience requires, and operators MUST be able to
+  honor a player's request to delete their data.
+- Vulnerabilities take precedence over feature work. Fixes MUST be disclosed
+  responsibly so that every operator can patch before details are public.
+
+**Rationale**: Players hand their data and identities to hobbyist operators
+they've never met. That trust is only sustainable if the engine — not each
+operator's expertise — is what keeps them secure.
+
 ## Engine Identity
 
 These identity commitments bound what Odyssey is. They are experience-level
@@ -201,4 +223,4 @@ Conflicts resolve in the constitution's favor.
   document. Complexity and exceptions MUST be justified in writing in the
   plan's Complexity Tracking section.
 
-**Version**: 0.1.0 | **Ratified**: TODO(RATIFICATION_DATE): pending — draft, will be ratified as v1.0.0 | **Last Amended**: 2026-06-04
+**Version**: 0.2.0 | **Ratified**: TODO(RATIFICATION_DATE): pending — draft, will be ratified as v1.0.0 | **Last Amended**: 2026-06-04
