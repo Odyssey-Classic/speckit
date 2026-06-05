@@ -1,14 +1,11 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 0.3.0 → 0.4.0 (MINOR: licensing policy added to Principle III)
-Modified principles:
-  - III. Open Ecosystem, No Lock-In (commons guarantee made concrete:
-    AGPL-3.0 engine core + Apache-2.0 edges; world-content boundary added —
-    creators' worlds are not derivative works of the engine)
-  - Governance (founder named: Christopher Lowenthal)
+Version change: 0.4.0 → 1.0.0 (MAJOR: formal ratification of the draft
+  constitution; draft status removed, ratification date set)
+Modified principles: none (content unchanged from v0.4.0 draft)
 Added sections: none
-Removed sections: none
+Removed sections: draft status banner
 Templates requiring updates:
   - ✅ .specify/templates/plan-template.md (Constitution Check gate already
     generic; gates derive from this document — no edit needed)
@@ -17,13 +14,11 @@ Templates requiring updates:
   - ✅ .specify/templates/tasks-template.md (security hardening already present
     in Polish phase; Principle V references unchanged — no edit needed)
 Follow-up TODOs:
-  - TODO(RATIFICATION_DATE): set when the draft is formally ratified as v1.0.0
+  - Author follow-up artifacts implied by the constitution: contributor code
+    of conduct; vulnerability-disclosure process (Principle VIII)
 -->
 
 # Odyssey Constitution
-
-**Status**: DRAFT — this constitution is open for revision and has not yet
-been formally ratified. Formal ratification will be marked by v1.0.0.
 
 Odyssey is an open source engine for online RPGs: persistent, shared worlds
 played together in small communities. The engine is opinionated — it ships one
@@ -246,4 +241,4 @@ Conflicts resolve in the constitution's favor.
   document. Complexity and exceptions MUST be justified in writing in the
   plan's Complexity Tracking section.
 
-**Version**: 0.4.0 | **Ratified**: TODO(RATIFICATION_DATE): pending — draft, will be ratified as v1.0.0 | **Last Amended**: 2026-06-05
+**Version**: 1.0.0 | **Ratified**: 2026-06-05 | **Last Amended**: 2026-06-05
