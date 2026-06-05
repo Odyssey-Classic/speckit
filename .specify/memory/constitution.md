@@ -1,13 +1,16 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 0.1.0 → 0.2.0 (MINOR: new principle added)
+Version change: 0.2.0 → 0.3.0 (MINOR: material expansion of Principles II
+  and III from pre-ratification review)
 Modified principles:
-  - II. Players First (safety vow: added cross-reference distinguishing
-    safety from security)
-Added sections:
-  - VIII. Secure by Default (new principle: protection of data, identities,
-    and credentials — distinct from safety/wellbeing in Principle II)
+  - II. Players First (fairness vow: explicit monetization stance — access
+    yes, advantage never; low-barrier vow: accessibility for players with
+    disabilities, within technical constraints)
+  - III. Open Ecosystem, No Lock-In (commons protection upgraded from SHOULD
+    to MUST — copyleft-spirit license guarantee; new commitment: worlds
+    survive engine upgrades once the engine reaches 1.0)
+Added sections: none
 Removed sections: none
 Templates requiring updates:
   - ✅ .specify/templates/plan-template.md (Constitution Check gate already
@@ -61,13 +64,18 @@ conflict, players win. This commits every repository to four vows, even at
 cost to creator convenience or project growth:
 
 - **Fairness**: Engine capabilities MUST NOT enable real money to buy
-  in-game power or advantage.
+  in-game power or advantage. Operators MAY charge for access or support of
+  their world, but nothing purchasable — through the engine or alongside
+  it — may confer in-game power: access yes, advantage never.
 - **Respect for player time**: The engine MUST NOT ship dark patterns —
   no engagement traps, FOMO mechanics, or grind engineered to retain rather
   than delight.
 - **Low barrier to play**: Joining a world MUST remain easy and free of
   unnecessary walls — no account hurdles, installs, or hardware demands
-  beyond what the experience genuinely requires.
+  beyond what the experience genuinely requires. The barrier includes
+  ability: within the technical constraints available, the default
+  experience MUST be playable by players with disabilities, and
+  accessibility regressions are treated as defects.
 - **Safety & dignity**: Moderation and safety tooling are core engine
   features. Every world MUST ship with real tools to protect player
   wellbeing; safety is never an optional add-on. (Safety concerns wellbeing
@@ -85,8 +93,14 @@ project additionally binds itself to:
   always be able to leave, self-host, and take everything with them.
 - **Open development**: Decisions, specs, and roadmaps happen in public.
   Community contribution is a first-class path, not an afterthought.
-- **Protect the commons**: Improvements to the engine SHOULD flow back to
-  the ecosystem rather than be enclosed.
+- **Protect the commons**: The engine's license MUST guarantee that
+  improvements to the engine flow back to the ecosystem — running a
+  modified engine means sharing those modifications. Enclosing the commons
+  is not a permitted business model.
+- **Worlds outlive engine versions**: Once the engine reaches 1.0, upgrades
+  MUST NOT orphan existing worlds — every breaking change ships with a
+  migration path. Before engine 1.0, breaking changes are permitted with
+  clear notice to creators.
 
 **Rationale**: Creators will only invest years building worlds on Odyssey if
 the project can never hold those worlds hostage.
@@ -223,4 +237,4 @@ Conflicts resolve in the constitution's favor.
   document. Complexity and exceptions MUST be justified in writing in the
   plan's Complexity Tracking section.
 
-**Version**: 0.2.0 | **Ratified**: TODO(RATIFICATION_DATE): pending — draft, will be ratified as v1.0.0 | **Last Amended**: 2026-06-04
+**Version**: 0.3.0 | **Ratified**: TODO(RATIFICATION_DATE): pending — draft, will be ratified as v1.0.0 | **Last Amended**: 2026-06-04
