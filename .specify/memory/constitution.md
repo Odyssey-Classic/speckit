@@ -1,15 +1,12 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 0.2.0 → 0.3.0 (MINOR: material expansion of Principles II
-  and III from pre-ratification review)
+Version change: 0.3.0 → 0.4.0 (MINOR: licensing policy added to Principle III)
 Modified principles:
-  - II. Players First (fairness vow: explicit monetization stance — access
-    yes, advantage never; low-barrier vow: accessibility for players with
-    disabilities, within technical constraints)
-  - III. Open Ecosystem, No Lock-In (commons protection upgraded from SHOULD
-    to MUST — copyleft-spirit license guarantee; new commitment: worlds
-    survive engine upgrades once the engine reaches 1.0)
+  - III. Open Ecosystem, No Lock-In (commons guarantee made concrete:
+    AGPL-3.0 engine core + Apache-2.0 edges; world-content boundary added —
+    creators' worlds are not derivative works of the engine)
+  - Governance (founder named: Christopher Lowenthal)
 Added sections: none
 Removed sections: none
 Templates requiring updates:
@@ -97,6 +94,18 @@ project additionally binds itself to:
   improvements to the engine flow back to the ecosystem — running a
   modified engine means sharing those modifications. Enclosing the commons
   is not a permitted business model.
+- **Licensing policy**: The engine core (server and the systems that make a
+  world run) is licensed AGPL-3.0 — network copyleft is what makes the
+  commons guarantee real for hosted software. The ecosystem edges — client
+  SDKs, protocol definitions, and creator tooling — are licensed Apache-2.0
+  so that building clients, tools, and integrations carries no license
+  friction. Each repository declares which side of the line it sits on;
+  moving the line is a constitutional amendment.
+- **World-content boundary**: A creator's world — its content, data, and
+  scripts written against the creator-facing API — is NOT a derivative work
+  of the engine. Copyleft never reaches into a creator's world; creators
+  license their own worlds however they choose. This boundary MUST be
+  stated explicitly alongside the engine's license.
 - **Worlds outlive engine versions**: Once the engine reaches 1.0, upgrades
   MUST NOT orphan existing worlds — every breaking change ships with a
   migration path. Before engine 1.0, breaking changes are permitted with
@@ -222,8 +231,8 @@ constitutional amendment.
 This constitution supersedes all other practices in every Odyssey repository.
 Conflicts resolve in the constitution's favor.
 
-- **Decision model — founder-led, evolving**: The founder holds final
-  decision authority while the project is young. Community input is actively
+- **Decision model — founder-led, evolving**: The founder, Christopher
+  Lowenthal, holds final decision authority while the project is young. Community input is actively
   sought and decisions are made in public (Principle III). The project
   commits to moving toward shared governance as a contributor community
   forms; that transition is itself a constitutional amendment.
@@ -237,4 +246,4 @@ Conflicts resolve in the constitution's favor.
   document. Complexity and exceptions MUST be justified in writing in the
   plan's Complexity Tracking section.
 
-**Version**: 0.3.0 | **Ratified**: TODO(RATIFICATION_DATE): pending — draft, will be ratified as v1.0.0 | **Last Amended**: 2026-06-04
+**Version**: 0.4.0 | **Ratified**: TODO(RATIFICATION_DATE): pending — draft, will be ratified as v1.0.0 | **Last Amended**: 2026-06-05
