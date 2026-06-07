@@ -10,14 +10,43 @@
 
 ## Overview
 
-Odyssey is a single application — an online RPG engine — built across multiple
-repositories in different languages and runtime environments. This spec
-defines how the project protects its main branches, keeps version identity
-coherent across those repositories, and turns merged work into releases that
+Odyssey — an online RPG engine — is delivered as a set of cooperating
+applications: game servers, clients, admin tools, a world registry, and
+others as features require, built across multiple repositories in different
+languages and runtime environments. This spec defines how the project
+protects its main branches, keeps version identity coherent across those
+repositories and applications, and turns merged work into releases that
 hobbyist operators can confidently install and upgrade. It also defines how
 the multi-repository, spec-first workflow (Constitution Principle IV) is kept
 honest: work landing in any repository remains traceable to the central spec
-that authorized it.
+that authorized it. How those applications interoperate — which versions
+work together at runtime — is deliberately out of scope here and will be
+specified separately.
+
+## Clarifications
+
+### Session 2026-06-06
+
+- Q: Is Odyssey a single application? → A: No — a set of cooperating
+  applications (servers, clients, admin tools, world registry, others as
+  features require); this spec's canonical term for one such application is
+  "application" (formerly "component").
+- Q: How is versioning/compatibility governed across applications beyond
+  server→client? → A: No global topology is mandated — each application has
+  different requirements and is responsible for creating, managing, and
+  reporting its own version, with semantic versioning (SemVer) as the
+  project-wide standard for version-part meanings. Interoperability — which
+  versions of which applications work together, including the earlier
+  server→client acceptance model — is out of scope for this spec and
+  deferred to a dedicated spec.
+- Q: Does releasing include operating anything (e.g., a project-hosted world
+  registry service)? → A: No — every application, registry included, is
+  released as installable software; anyone who runs an instance, including
+  the project itself, does so as an operator, outside this spec.
+- Q: What do versions promise before 1.0? → A: Strict SemVer — pre-1.0
+  versions promise nothing about compatibility, and every pre-1.0 release
+  must make that clearly visible to operators; full breaking-change
+  visibility (FR-011) applies from 1.0.0 onward.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -54,7 +83,7 @@ is mergeable after review.
    review, **When** the contributor merges, **Then** the merge succeeds.
 4. **Given** any two Odyssey repositories in different languages, **When**
    pull requests are opened in each, **Then** the same categories of gate
-   (tests, quality, security) are enforced in both.
+   (tests, quality, security, documentation) are enforced in both.
 5. **Given** a contribution from an outside collaborator without project
    privileges, **When** their pull request is opened, **Then** it receives
    the same gating as a maintainer's pull request before it can merge.
@@ -63,57 +92,53 @@ is mergeable after review.
 
 ### User Story 2 - Coherent Version Identity (Priority: P2)
 
-Every component of Odyssey carries its own independent version, and the game
-server is the anchor of compatibility: each server release authoritatively
-declares which client version(s) it accepts. Declared client versions remain
-published and retrievable, so the right client can always be obtained for a
-given server. An operator, contributor, or maintainer can ask any built or
-running component what version it is, and can determine from a server release
-exactly which client versions belong with it — even though the components are
-built in different repositories, languages, and environments.
+Every Odyssey application creates, manages, and reports its own version, with
+semantic versioning giving version parts the same meaning across the whole
+project. An operator, contributor, or maintainer can ask any built artifact
+or running application what version it is and trace that version to the exact
+source it was built from — even though the applications are built in
+different repositories, languages, and environments.
 
 **Why this priority**: Without coherent version identity, multi-repository
-problems become undiagnosable ("which server build is incompatible with which
-client build?") and releases (Story 3) have no stable thing to point at. It
-builds directly on Story 1's trustworthy main branches.
+problems become undiagnosable ("which build of which application is this?")
+and releases (Story 3) have no stable thing to point at. It builds directly
+on Story 1's trustworthy main branches.
 
-**Independent Test**: Can be tested by building components from two or more
-repositories, then verifying that (a) each built artifact carries a unique,
-traceable version, (b) a server release declares the exact client version(s)
-it accepts, (c) every declared client version is retrievable, and (d)
-compatibility between a server and a client is determinable from the server's
-declaration alone, without inspecting code.
+**Independent Test**: Can be tested by building artifacts from two or more
+repositories, then verifying that (a) each carries a unique, traceable
+version, (b) each application reports its version on demand, and (c) for
+applications at 1.0.0 or later, a breaking change is distinguishable from a
+non-breaking one by version identity alone.
 
 **Acceptance Scenarios**:
 
 1. **Given** any built artifact from any repository, **When** its version is
    inspected, **Then** it uniquely identifies the exact source it was built
    from.
-2. **Given** a server release, **When** anyone inspects it, **Then** it
-   declares the exact client version(s) it accepts.
-3. **Given** a server release's declared client versions, **When** any one of
-   them is requested, **Then** that client version is retrievable for as long
-   as a supported server release declares it.
-4. **Given** a server and a client, **When** their compatibility is in
-   question, **Then** it is determinable from the server's declaration alone
-   — without reading code or asking the project.
+2. **Given** a running application, **When** it is asked for its version,
+   **Then** it reports the same version its artifact carries.
+3. **Given** a release of an application at or beyond 1.0.0 that contains a
+   breaking change, **When** its version is compared with the prior
+   release's, **Then** the version identity alone signals the break, per
+   semantic versioning.
+4. **Given** a pre-1.0 release, **When** an operator reads its release notes
+   or version information, **Then** it clearly states that pre-1.0 versions
+   make no compatibility promises.
 5. **Given** a change merges to main in any repository, **When** the next
-   build occurs, **Then** its version is assigned deterministically — no
-   human invents version numbers ad hoc.
+   build occurs, **Then** its version is assigned deterministically under the
+   owning application's recorded rules — no human invents version numbers ad
+   hoc.
 
 ---
 
 ### User Story 3 - Cutting a Release (Priority: P3)
 
-A release manager decides a component is ready to release. They initiate a
-release of that component, and the outcome is a named, versioned, installable
-artifact with release notes describing what changed and a way for operators
-to verify it is authentic and untampered. Components release independently;
-the server release is the operator-facing anchor — when a server release is
-cut, its declared client version(s) must already be published, so an operator
-who installs or upgrades a server always has a working, compatible client
-available. An operator running an Odyssey world can discover a new server
-release, read what changed, and upgrade.
+A release manager decides an application is ready to release. They initiate
+a release, and the outcome is a named, versioned, installable artifact with
+release notes describing what changed and a way for operators to verify it
+is authentic and untampered. Applications release independently, each on its
+own cadence. An operator running an Odyssey world can discover a new release
+of an application they run, read what changed, and upgrade.
 
 **Why this priority**: Releases are the project's product reaching its
 users (operators and their players), but they require Stories 1 and 2 to be
@@ -121,27 +146,24 @@ meaningful. The constitution's "small communities" identity requires hosting
 to stay practical for hobbyists — releases are where that promise is kept or
 broken.
 
-**Independent Test**: Can be tested by cutting a release end-to-end:
-verifying it produces versioned artifacts for every component, generated
-release notes, integrity verification material, and that a fresh operator
-can go from "nothing installed" to "running the released version" using only
-the release and its documentation.
+**Independent Test**: Can be tested by cutting a release of one application
+end-to-end: verifying it produces a versioned artifact, generated release
+notes, integrity verification material, and that a fresh operator can go
+from "nothing installed" to "running the released version" using only the
+release and its documentation.
 
 **Acceptance Scenarios**:
 
-1. **Given** a component's main branch in a releasable state, **When** the
-   release manager cuts a release of that component, **Then** a versioned,
+1. **Given** an application's main branch in a releasable state, **When** the
+   release manager cuts a release of that application, **Then** a versioned,
    installable artifact for it is published, consistent with the versioning
    rules from Story 2.
-2. **Given** a server release being cut, **When** any client version it
-   declares is not yet published and retrievable, **Then** publication is
-   blocked before operators can see the release.
-3. **Given** a published release, **When** an operator reads it, **Then**
+2. **Given** a published release, **When** an operator reads it, **Then**
    release notes describe user-visible changes, upgrade steps, and any
-   breaking changes since the prior release of that component.
-4. **Given** a downloaded release artifact, **When** an operator checks it,
+   breaking changes since the prior release of that application.
+3. **Given** a downloaded release artifact, **When** an operator checks it,
    **Then** they can verify it is authentic and has not been tampered with.
-5. **Given** a critical defect found in the latest release of a component,
+4. **Given** a critical defect found in the latest release of an application,
    **When** a fix is prepared, **Then** a corrected release can be produced
    without shipping unrelated unfinished work from main.
 
@@ -153,9 +175,9 @@ A maintainer reviewing work anywhere in the project can trace it to the
 central spec that authorized it (Constitution Principle IV). When a single
 feature requires coordinated changes in multiple repositories — for example,
 a change to how server and client talk to each other — the process makes the
-coordination visible: each repository's work references the same spec, and a
-release cannot silently combine halves of a cross-repository change that
-don't work together.
+coordination visible: each repository's work references the same spec, so
+reviewers in every repository can see the whole of the change they are
+approving a part of.
 
 **Why this priority**: This is the "working with SpecKit across multiple
 repositories" glue. It matters most as the number of repositories and
@@ -164,10 +186,9 @@ informally, which is why it is prioritized after the foundational gates,
 versioning, and releases.
 
 **Independent Test**: Can be tested by simulating a cross-repository feature:
-verifying each repository's pull requests reference the central spec,
+verifying each repository's pull requests reference the central spec, and
 verifying a pull request with no spec reference (and no documented exemption)
-is flagged, and verifying that a release attempted with only one half of a
-coordinated change is detected as incompatible before publication.
+is flagged.
 
 **Acceptance Scenarios**:
 
@@ -177,10 +198,7 @@ coordinated change is detected as incompatible before publication.
 2. **Given** a pull request with no spec reference and no documented
    exemption (e.g., routine maintenance), **When** gates run, **Then** the
    omission is surfaced to the reviewer rather than passing silently.
-3. **Given** a coordinated cross-repository change where only one
-   repository's half has merged, **When** a release is attempted, **Then**
-   the incompatibility is detected before the release is published.
-4. **Given** a ratified spec changes version, **When** downstream
+3. **Given** a ratified spec changes version, **When** downstream
    repositories next take up work on it, **Then** each repository's tracked
    spec version is updated, keeping drift visible.
 
@@ -192,21 +210,16 @@ coordinated change is detected as incompatible before publication.
   an existing dependency that the pull request did not touch. The gate must
   distinguish "you introduced this" (block) from "this already exists"
   (surface and track, do not punish the unrelated contributor).
-- **Cross-repository breaking change**: Server and client must change
-  together, but merges happen one repository at a time. Between the two
-  merges, main branches are individually green but mutually incompatible.
-  The server's compatibility declaration closes this window for operators —
-  a server release that needs the new client declares only client versions
-  that actually exist and work with it, and cannot be published before they
-  do (Story 3, scenario 2).
+- **Cross-repository breaking change**: Two applications must change
+  together, but merges happen one repository at a time, leaving a window
+  where main branches are individually green yet mutually incompatible.
+  Managing that window is an interoperability concern — explicitly out of
+  scope for this spec (see Assumptions) and deferred to a dedicated
+  interoperability spec. This spec's contribution is the raw material:
+  trustworthy versions (Story 2) and spec traceability (Story 4).
 - **Hotfixing a release**: A severe bug is found in the latest release while
   main has accumulated unreleased work. The process must support releasing a
-  fix without dragging unreleased changes along (Story 3, scenario 5).
-- **A declared client version goes bad**: A client version declared by
-  published server releases is later found to have a serious defect or
-  vulnerability. The process must support publishing a corrected client and
-  updating affected servers' declarations, without breaking operators running
-  in the meantime.
+  fix without dragging unreleased changes along (Story 3, scenario 4).
 - **The spec repository itself**: This repository contains specs, not
   shipping code. Its "quality gates" are necessarily different in kind
   (document validity, constitution compliance) but it must not be exempt
@@ -218,7 +231,7 @@ coordinated change is detected as incompatible before publication.
 - **Gate outage or false positive**: A required check is unavailable or
   wrongly fails. Overrides must be possible but never silent — every bypass
   is recorded, attributed, and justified.
-- **Partial release failure**: A component release fails partway through
+- **Partial release failure**: An application release fails partway through
   publication. Consumers must never observe the half-published state as a
   usable release — they see either the complete new release or the prior one.
 
@@ -232,8 +245,9 @@ coordinated change is detected as incompatible before publication.
   required gates pass and at least the review required by the constitution's
   Development Workflow is complete.
 - **FR-002**: Required gates MUST cover, at minimum: automated tests, code
-  quality standards, and security checks (both the contributed changes and
-  the dependencies they bring in).
+  quality standards, security checks (both the contributed changes and the
+  dependencies they bring in), and documentation requirements (a merge
+  requirement per the constitution, Principle VI).
 - **FR-003**: Gate categories and their blocking thresholds MUST be defined
   once, centrally, in this repository — with each repository adapting only
   the language-specific *means* of satisfying them, never the categories or
@@ -248,55 +262,53 @@ coordinated change is detected as incompatible before publication.
 - **FR-006**: Any bypass of a required gate MUST be recorded, attributed to a
   named person, and justified in writing; silent bypass MUST NOT be possible.
 
-**Versioning (coherence across repositories)**
+**Versioning (per-application ownership)**
 
-- **FR-007**: The project MUST define a single versioning policy, recorded in
-  this repository, under which every component carries its own independent
-  version.
-- **FR-008**: Every built artifact MUST carry a version that uniquely and
+- **FR-007**: Each application MUST create, manage, and report its own
+  version; no other application or central authority assigns versions on its
+  behalf.
+- **FR-008**: The project-wide versioning standard, recorded in this
+  repository, is semantic versioning: version-part meanings (breaking /
+  feature / fix) MUST be uniform across all applications.
+- **FR-009**: Every built artifact MUST carry a version that uniquely and
   reproducibly identifies the exact source it was built from.
-- **FR-009**: Every server release MUST declare the exact client version(s)
-  it accepts; that declaration is the authoritative compatibility record
-  between server and client.
 - **FR-010**: Version assignment on merge and release MUST be deterministic
-  and automatic; no step may depend on a person inventing a number.
-- **FR-011**: The versioning policy MUST make breaking changes visible in
-  each component's version identity, so operators can distinguish safe
-  upgrades from ones requiring attention.
-- **FR-012**: Every client version declared by a supported server release
-  MUST remain published and retrievable for as long as any supported server
-  release declares it.
+  and automatic under the owning application's recorded rules; no step may
+  depend on a person inventing a number.
+- **FR-011**: From version 1.0.0 of an application onward, breaking changes
+  MUST be visible in its version identity per semantic versioning, so
+  consumers can distinguish safe upgrades from ones requiring attention.
+  Before 1.0.0, per strict semantic versioning, versions promise nothing
+  about compatibility — and every pre-1.0 release MUST make that clearly
+  visible to operators in its release notes and version presentation.
 
 **Releases**
 
-- **FR-013**: A release MUST be producible from tagged, gated source alone —
+- **FR-012**: A release MUST be producible from tagged, gated source alone —
   rebuilding the same release version yields functionally identical
   artifacts.
-- **FR-014**: Every release MUST include release notes covering user-visible
+- **FR-013**: Every release MUST include release notes covering user-visible
   changes, upgrade steps, and breaking changes since the previous release of
-  that component.
-- **FR-015**: Operators MUST be able to verify the authenticity and integrity
+  that application.
+- **FR-014**: Operators MUST be able to verify the authenticity and integrity
   of every published release artifact.
-- **FR-016**: The process MUST support producing a fixed release of a
-  component from its latest published release without including unreleased
+- **FR-015**: The process MUST support producing a fixed release of an
+  application from its latest published release without including unreleased
   work from main.
-- **FR-017**: A component release MUST be published atomically from the
+- **FR-016**: An application release MUST be published atomically from the
   consumer's view — operators either see the complete release or the prior
   one, never a partial publication.
-- **FR-018**: A server release MUST NOT be publishable unless every client
-  version it declares is already published and retrievable — a half-merged
-  cross-repository change cannot reach operators.
 
 **Cross-repository & SpecKit coordination**
 
-- **FR-019**: Pull requests implementing spec-driven work MUST reference the
+- **FR-017**: Pull requests implementing spec-driven work MUST reference the
   central spec and spec version they implement; pull requests without a
   reference MUST be surfaced to reviewers unless covered by a documented
   exemption category (e.g., routine maintenance).
-- **FR-020**: The gating, versioning, and release policies themselves MUST be
+- **FR-018**: The gating, versioning, and release policies themselves MUST be
   versioned in this repository, and each repository MUST record which policy
   version it currently implements, keeping drift detectable.
-- **FR-021**: Adopting the standard gates in a new Odyssey repository MUST be
+- **FR-019**: Adopting the standard gates in a new Odyssey repository MUST be
   a documented, repeatable procedure rather than a bespoke design effort.
 
 ### Key Entities
@@ -304,14 +316,13 @@ coordinated change is detected as incompatible before publication.
 - **Gate Policy**: The centrally defined set of gate categories, blocking
   thresholds, and exemption rules that every repository implements; itself
   versioned.
-- **Component Version**: The independent identity carried by each component's
-  built artifact, uniquely tied to its exact source; governed by the
-  project-wide versioning policy.
-- **Component Release**: A named, versioned, published artifact for one
-  component, with release notes and verification material. The server release
-  is the operator-facing anchor: the unit operators install and upgrade.
-- **Compatibility Declaration**: The authoritative record, carried by each
-  server release, of the exact client version(s) that server accepts.
+- **Application Version**: The independent identity carried by each
+  application's built artifact, created and managed by the owning application
+  and uniquely tied to its exact source; semantic versioning gives its parts
+  uniform meaning project-wide.
+- **Application Release**: A named, versioned, published artifact for one
+  application, with release notes and verification material; the unit
+  operators install and upgrade.
 - **Spec Reference**: The link from a unit of work (pull request) in any
   repository to the central spec and spec version that authorized it.
 
@@ -322,21 +333,19 @@ coordinated change is detected as incompatible before publication.
 - **SC-001**: 100% of merges into main across all Odyssey repositories pass
   the required gates or carry a recorded, attributed, written justification —
   zero silent bypasses.
-- **SC-002**: For any published server release, anyone can determine the
-  exact client version(s) it accepts from the release itself in under one
-  minute.
+- **SC-002**: 100% of published artifacts and running applications report a
+  version traceable to the exact source they were built from — zero
+  unversioned or untraceable releases.
 - **SC-003**: A contributor receives complete pass/fail gate feedback on a
   pull request within 15 minutes of opening or updating it.
 - **SC-004**: A release — artifacts, notes, verification material — can be
   cut by one person in under one hour of hands-on effort.
 - **SC-005**: A brand-new repository can adopt the full standard gate set
   within one working day using only the documented procedure.
-- **SC-006**: No server release is ever published declaring a client version
-  that is not itself published and retrievable (zero occurrences).
-- **SC-007**: A fresh operator can go from nothing installed to running the
+- **SC-006**: A fresh operator can go from nothing installed to running the
   latest release, using only the release and its notes, without contacting
   the project for help.
-- **SC-008**: 100% of spec-driven pull requests are traceable to a central
+- **SC-007**: 100% of spec-driven pull requests are traceable to a central
   spec version; untraceable pull requests outside exemption categories are
   flagged before merge.
 
@@ -353,21 +362,24 @@ coordinated change is detected as incompatible before publication.
 - The security gate's default blocking threshold is high-severity and above
   for known vulnerabilities, with lower severities surfaced but not blocking;
   the threshold is part of the central gate policy and adjustable there.
-- The Odyssey application currently spans this spec repository and the server
-  repository, with at least a client repository expected; the policies must
-  hold for N repositories, not just the current set.
-- The server is the operator-facing unit of installation; players reach the
-  client through a world's server (web-first play), so keeping every declared
-  client version published and retrievable is a project obligation, not an
-  operator burden.
-- "Supported" follows the latest-release-line assumption above: client
-  retrievability is guaranteed for client versions declared by the latest
-  server release line; declarations by retired server releases may lapse.
+- The Odyssey project currently spans this spec repository and the server
+  repository, with more application repositories expected (client, admin
+  tools, world registry, and others as features require); the policies must
+  hold for N repositories and N applications, not just the current set.
+- Interoperability between applications — which versions work together at
+  runtime, and how compatibility is declared or enforced (including
+  server↔client acceptance) — is explicitly out of scope for this spec and
+  will be addressed in a dedicated spec.
 - This spec repository is itself a governed repository: its gates validate
   documents and constitutional compliance rather than running code tests.
 - Released artifacts are what operators run to host worlds; per the
   constitution's Engine Identity, install and upgrade must remain practical
   for a hobbyist (no specialist infrastructure assumed).
+- Every application — including any future service-shaped ones such as the
+  world registry — is released as installable software; the project's
+  responsibility ends at the published, verifiable artifact. If the project
+  runs an instance of any application, it does so as an operator, outside
+  this spec.
 - Operator-side deployment automation (tooling that manages a running world's
   infrastructure) is out of scope for this spec; it covers the project's
   pipeline from contribution to published release.
