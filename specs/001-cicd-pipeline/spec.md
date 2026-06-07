@@ -48,6 +48,13 @@ specified separately.
   must make that clearly visible to operators; full breaking-change
   visibility (FR-011) applies from 1.0.0 onward.
 
+### Session 2026-06-07
+
+- Q: How many repositories does the project span? → A: Never assume a count
+  (there are already more than the spec guessed); this document and all
+  derived documents must stay correct for any number of repositories and
+  applications.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Protected Main Branches (Priority: P1)
@@ -181,7 +188,7 @@ approving a part of.
 
 **Why this priority**: This is the "working with SpecKit across multiple
 repositories" glue. It matters most as the number of repositories and
-contributors grows; with one founder and two repositories it is cheap to do
+contributors grows; while the contributor base is small it is cheap to do
 informally, which is why it is prioritized after the foundational gates,
 versioning, and releases.
 
@@ -362,10 +369,10 @@ is flagged.
 - The security gate's default blocking threshold is high-severity and above
   for known vulnerabilities, with lower severities surfaced but not blocking;
   the threshold is part of the central gate policy and adjustable there.
-- The Odyssey project currently spans this spec repository and the server
-  repository, with more application repositories expected (client, admin
-  tools, world registry, and others as features require); the policies must
-  hold for N repositories and N applications, not just the current set.
+- The Odyssey project spans multiple repositories, and that number changes
+  over time as applications are added (servers, clients, admin tools, world
+  registry, and others as features require); no policy, document, or
+  procedure may assume a fixed count of repositories or applications.
 - Interoperability between applications — which versions work together at
   runtime, and how compatibility is declared or enforced (including
   server↔client acceptance) — is explicitly out of scope for this spec and
