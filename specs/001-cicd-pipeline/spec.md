@@ -54,6 +54,18 @@ specified separately.
   (there are already more than the spec guessed); this document and all
   derived documents must stay correct for any number of repositories and
   applications.
+- Q: SC-003's 15-minute gate-feedback bound seems arbitrary and breaks once
+  integration testing is added — keep it? → A: No — drop the time bound. The
+  provable property is that every required gate runs automatically on every
+  PR and reports a definitive pass/fail without manual triggering; feedback
+  speed is a plan-time tuning target, not a spec promise.
+- Q: SC-004 and SC-005 measure human effort/time, which can't be tracked or
+  proven — replace them? → A: Yes, reframe both to observable properties.
+  SC-004: a release is produced by one triggered action that generates all
+  required outputs with no manual assembly. SC-005: a new repository adopts
+  the full standard gate set by applying the shared gate configuration,
+  authoring zero bespoke gate logic. (Human-time targets are not provable
+  acceptance criteria.)
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -343,12 +355,15 @@ is flagged.
 - **SC-002**: 100% of published artifacts and running applications report a
   version traceable to the exact source they were built from — zero
   unversioned or untraceable releases.
-- **SC-003**: A contributor receives complete pass/fail gate feedback on a
-  pull request within 15 minutes of opening or updating it.
-- **SC-004**: A release — artifacts, notes, verification material — can be
-  cut by one person in under one hour of hands-on effort.
-- **SC-005**: A brand-new repository can adopt the full standard gate set
-  within one working day using only the documented procedure.
+- **SC-003**: Every required gate runs automatically on every pull request
+  and reports a definitive pass/fail result without any manual triggering
+  (100% of pull requests; zero gates requiring a human to start them).
+- **SC-004**: A release is produced by a single triggered action that
+  generates all required outputs (artifacts, release notes, verification
+  material) with no manual assembly of any artifact.
+- **SC-005**: A new repository adopts the full standard gate set by applying
+  the shared gate configuration, authoring zero bespoke gate logic — adoption
+  is configuration, not design.
 - **SC-006**: A fresh operator can go from nothing installed to running the
   latest release, using only the release and its notes, without contacting
   the project for help.
