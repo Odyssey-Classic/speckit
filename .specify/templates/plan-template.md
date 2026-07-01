@@ -36,6 +36,22 @@
 
 **Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
+## Repositories Affected
+
+<!--
+  ACTION REQUIRED: List every Odyssey repository this feature CHANGES, in
+  coordination order (what must merge/release first). A single-repo feature has
+  one row. Repositories that are only *consulted* (not changed) belong in the
+  notes column, not as rows. Same Order value = may proceed in parallel.
+
+  REQUIRED for multi-repository features per Constitution → Development Workflow
+  → Cross-repository coordination (v1.1.0).
+-->
+
+| Order | Repository | What changes here | Depends on / coordinates with |
+|-------|------------|-------------------|-------------------------------|
+| 1     | [repo]     | [what changes]    | —                             |
+
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
