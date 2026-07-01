@@ -158,9 +158,9 @@ description: "Task list for CI/CD Pipeline, Versioning & Release Process"
 **Purpose**: Whole-pipeline security verification, proving-ground rollout, and end-to-end validation.
 
 - [ ] T049 [P] SC-008 pipeline-security audit across `gate.yml`, `release.yml`, `spec-trace.yml` and all composites — least-privilege `permissions:` verified, zero plaintext secret/signing-material exposure in logs/artifacts/fork-PR contexts, secret + signing-key access attributable (FR-020, SC-008, Constitution VIII)
-- [ ] T050 [P] [server] Proving-ground rollout — add `ody-server` go-profile caller workflows (`ci.yml` + `release.yml` with `adapter: go`) and branch protection (quickstart "Done when")
+- [ ] T050 [P] [server] Proving-ground rollout — add `server` go-profile caller workflows (`ci.yml` + `release.yml` with `adapter: go`) and branch protection (quickstart "Done when")
 - [ ] T051 [P] Cross-link the `docs/cicd/` set (index + references between onboarding/runbook/verification/versioning-policy); no code in READMEs, link to the referenced files (Constitution VI)
-- [ ] T052 Run `quickstart.md` Scenarios A–I against the proving-ground repos (`speckit` docs-only + `ody-server` go) and record results (quickstart "Done when")
+- [ ] T052 Run `quickstart.md` Scenarios A–I against the proving-ground repos (`speckit` docs-only + `server` go) and record results (quickstart "Done when")
 - [ ] T053 [P] Adapter-authoring guide linked from `adapters/_template/` for onboarding a new ecosystem as configuration (FR-003; supports the deferred per-repo adapters)
 
 ---

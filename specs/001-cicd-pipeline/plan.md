@@ -25,7 +25,7 @@ here.
 
 **Language/Version**: Policy and tooling are language-agnostic by design.
 Reference/adapter implementations target the languages in play today (Go 1.18
-in `ody-server`) and a generic adapter contract for the rest (web client,
+in `server`) and a generic adapter contract for the rest (web client,
 admin tools, world registry — languages TBD per repo). Tooling glue is
 POSIX shell + the CI platform's native expression language.
 
@@ -68,7 +68,7 @@ adapter command's own runtime; gate feedback is automatic and definitive.
   tokens; signing keys never exported (Constitution VIII).
 
 **Scale/Scope**: Small contributor base today; design must not assume it.
-Initial rollout: this repo (governed/docs-only profile) + `ody-server` (Go
+Initial rollout: this repo (governed/docs-only profile) + `server` (Go
 profile) as the proving ground, then the remaining application repos.
 
 ## Repositories Affected
@@ -95,6 +95,7 @@ scope (see T053 and "Deferred to /speckit-tasks or later").
 | Principle | Relevance | Verdict |
 |-----------|-----------|---------|
 | **IV. Spec-First, Centrally Governed** | Plan derives from the ratified, merged spec (PR #2); reusable workflows live centrally in this repo, satisfying "defined once, centrally" (FR-003, FR-020). | ✅ Pass |
+| **IV. Cross-repo declaration (v1.1.0)** | Multi-repo feature — the `## Repositories Affected` section declares affected repos + coordination order, and tasks attribute to a repo (default `speckit`; T050 → `server`). | ✅ Pass |
 | **V. Tested to Be Trusted** | The gate tooling itself is tested (fixture repos, shell unit tests); the foundation is what *enforces* tests in every other repo. A gate change requires a failing-then-passing fixture. | ✅ Pass |
 | **VI. Docs as a Feature** | Onboarding guide, gate-policy reference, versioning policy, and release runbook ship as part of this feature, not after. | ✅ Pass |
 | **VII. Simplicity & YAGNI** | Reuses platform-native primitives (Actions reusable workflows, GitHub Releases, native attestations) instead of bespoke infrastructure. No custom CI server, no custom artifact registry. | ✅ Pass |
@@ -162,7 +163,7 @@ tests/
 ├── fixtures/                # Pass/fail sample changes per gate category
 └── e2e/                     # Harness-repo jobs exercising caller workflows
 
-# Consuming repo (e.g., Odyssey-Classic/ody-server) — thin, generated from template
+# Consuming repo (e.g., Odyssey-Classic/server) — thin, generated from template
 .github/workflows/
 ├── ci.yml                   # `uses: Odyssey-Classic/speckit/.github/workflows/gate.yml@vX`
 └── release.yml              # `uses: …/release.yml@vX` with adapter: go

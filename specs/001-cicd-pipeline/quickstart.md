@@ -104,5 +104,5 @@ drift audit lists it as behind. Re-pinning to `v2` is the upgrade.
 ---
 
 **Done when** all scenarios A–I pass against the proving-ground repos
-(`speckit` docs-only profile + `ody-server` Go profile), demonstrating every
+(`speckit` docs-only profile + `server` Go profile), demonstrating every
 mandatory user story and success criterion.

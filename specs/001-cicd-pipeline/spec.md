@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-05
 
-**Status**: Draft
+**Status**: Ratified
 
 **Input**: User description: "Our first spec is going to be our approach to CI/CD. We need coherent versioning across disparate languages and environments. We want to perform security checks, quality checks, and other proper gating on PRs being merged into main. We'll also need to determine how we release software. Please consider the issues we may have working with SpecKit, and in general, working across multiple repositories for a single application."
 
@@ -268,6 +268,11 @@ is flagged.
 - **Partial release failure**: An application release fails partway through
   publication. Consumers must never observe the half-published state as a
   usable release — they see either the complete new release or the prior one.
+- **Defective published release**: A release later found defective can be
+  superseded and marked *deprecated* with a reason — never silently deleted —
+  so operators can see it should no longer be used. The deprecation mechanism
+  (states, retention) is specified at plan level (deliberately deferred during
+  clarification).
 
 ## Requirements *(mandatory)*
 
@@ -295,6 +300,10 @@ is flagged.
   interpret it.
 - **FR-006**: Any bypass of a required gate MUST be recorded, attributed to a
   named person, and justified in writing; silent bypass MUST NOT be possible.
+- **FR-021**: The quality gate MUST verify each repository has declared which
+  side of the licensing line it occupies — engine-core (AGPL-3.0) or
+  ecosystem-edge (Apache-2.0), per Constitution Principle III — and MUST block
+  a repository that declares no valid side.
 
 **Versioning (per-application ownership)**
 

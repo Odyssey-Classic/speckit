@@ -6,16 +6,16 @@ upgrade, and verification (D5/D7/D8, FR-013/014/016).
 ## Release object (one per release, atomic)
 
 ```yaml
-application: ody-server
+application: server
 version: "1.4.0"                 # exact-tag derived (version-derivation R1)
 commit_sha: "abc1234…"
 pre_1_0: false                   # if true, disclaimer block is REQUIRED (FR-011)
 status: published                # published | deprecated (D14)
 
 artifacts:
-  - name: ody-server_1.4.0_linux_amd64.tar.gz
+  - name: server_1.4.0_linux_amd64.tar.gz
     digest: "sha256:…"
-    attestation: ody-server_1.4.0_linux_amd64.intoto.jsonl   # provenance (D7)
+    attestation: server_1.4.0_linux_amd64.intoto.jsonl   # provenance (D7)
 
 release_notes:                   # FR-013
   changes: [ "…user-visible change…" ]
