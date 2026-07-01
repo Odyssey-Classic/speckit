@@ -67,6 +67,21 @@ specified separately.
   authoring zero bespoke gate logic. (Human-time targets are not provable
   acceptance criteria.)
 
+### Session 2026-06-09
+
+- Q: FR-014 implies the pipeline signs releases and holds publishing
+  credentials, yet the spec set no requirement for protecting the pipeline's
+  own secrets (Constitution Principle VIII). Add one? → A: Yes — add a
+  functional requirement that the pipeline handle its own credentials and
+  release-signing material with least privilege, never expose secrets in
+  plaintext (logs, build artifacts, untrusted fork-PR contexts), and keep
+  secret and signing-key access auditable.
+- Q: FR-017 requires pull requests to reference "the central spec and spec
+  version," but what identifies a spec's version? → A: A spec is identified by
+  its feature folder (e.g., `001-cicd-pipeline`) together with the `speckit`
+  git commit or tag at which that spec was ratified; pull requests cite that
+  pair. No separate per-spec version-number scheme is introduced.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Protected Main Branches (Priority: P1)
@@ -321,14 +336,27 @@ is flagged.
 **Cross-repository & SpecKit coordination**
 
 - **FR-017**: Pull requests implementing spec-driven work MUST reference the
-  central spec and spec version they implement; pull requests without a
-  reference MUST be surfaced to reviewers unless covered by a documented
-  exemption category (e.g., routine maintenance).
+  central spec they implement — identified by its feature folder (e.g.,
+  `001-cicd-pipeline`) together with the `speckit` git commit or tag at which
+  that spec was ratified — so the exact authorizing spec revision is
+  traceable. No separate per-spec version-number scheme is introduced. Pull
+  requests without such a reference MUST be surfaced to reviewers unless
+  covered by a documented exemption category (e.g., routine maintenance).
 - **FR-018**: The gating, versioning, and release policies themselves MUST be
   versioned in this repository, and each repository MUST record which policy
   version it currently implements, keeping drift detectable.
 - **FR-019**: Adopting the standard gates in a new Odyssey repository MUST be
   a documented, repeatable procedure rather than a bespoke design effort.
+
+**Pipeline security (secure by default)**
+
+- **FR-020**: The pipeline MUST protect its own credentials and
+  release-signing material (Constitution Principle VIII): every stage uses
+  least-privilege credentials scoped to what it needs; secrets MUST NOT be
+  exposed in plaintext, including in logs, build artifacts, or untrusted
+  fork-pull-request contexts; and access to secrets and signing keys MUST be
+  attributable and auditable. This governs the pipeline's own posture and is
+  distinct from the security *gates* on contributed code (FR-004).
 
 ### Key Entities
 
@@ -343,7 +371,9 @@ is flagged.
   application, with release notes and verification material; the unit
   operators install and upgrade.
 - **Spec Reference**: The link from a unit of work (pull request) in any
-  repository to the central spec and spec version that authorized it.
+  repository to the central spec that authorized it — the spec's feature
+  folder (e.g., `001-cicd-pipeline`) plus the `speckit` git commit or tag at
+  which it was ratified. No separate per-spec version number is introduced.
 
 ## Success Criteria *(mandatory)*
 
@@ -368,8 +398,12 @@ is flagged.
   latest release, using only the release and its notes, without contacting
   the project for help.
 - **SC-007**: 100% of spec-driven pull requests are traceable to a central
-  spec version; untraceable pull requests outside exemption categories are
-  flagged before merge.
+  spec revision (feature folder + ratified `speckit` commit/tag); untraceable
+  pull requests outside exemption categories are flagged before merge.
+- **SC-008**: Every pipeline run uses least-privilege credentials and exposes
+  zero secrets or signing material in logs, build artifacts, or fork-pull-
+  request contexts; 100% of secret and signing-key accesses are attributable —
+  zero plaintext secret exposure.
 
 ## Assumptions
 

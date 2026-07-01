@@ -10,9 +10,11 @@ three clarification sessions.
 
 ## Context discovered
 
-- Repositories span **multiple GitHub owners** (`Odyssey-Classic/speckit`,
-  `clowenhg/ody-server`) and **multiple languages** (Go 1.18 server today; web
-  client and others to come). No CI exists in `ody-server` yet — greenfield.
+- All repositories live (or will live) under **a single GitHub organization**
+  (`Odyssey-Classic`); any repo currently elsewhere is expected to move under
+  the org. Plans and tooling assume one org owner, not a cross-owner spread.
+- Repositories span **multiple languages** (Go 1.18 server today; web client
+  and others to come). No CI exists in the server repo yet — greenfield.
 - The constitution designates this repo as the central, authoritative spec and
   governance home (Principle IV), which is the natural home for central CI
   policy and reusable workflows.
@@ -25,14 +27,17 @@ three clarification sessions.
   **reusable workflows** (`on: workflow_call`) plus **composite actions**,
   hosted in `speckit` and referenced by every other repo via
   `uses: Odyssey-Classic/speckit/.github/workflows/gate.yml@vX`.
-- **Rationale**: All repos are already on GitHub. Reusable workflows give
-  exactly the "defined once centrally, adopted by reference" property the spec
-  demands (FR-003, FR-020) and make adoption configuration-only (SC-005).
-  Cross-owner references are supported, so the multi-owner reality is handled
-  natively.
+- **Rationale**: All repos are on GitHub under one organization. Reusable
+  workflows give exactly the "defined once centrally, adopted by reference"
+  property the spec demands (FR-003, FR-020) and make adoption
+  configuration-only (SC-005). Single-org references keep the `uses:` paths
+  simple and access trivial.
 - **Alternatives considered**:
-  - *Org-level `.github` repo defaults*: convenient but scoped to a single
-    org — fails the multi-owner reality.
+  - *Org-level `.github` repo defaults*: viable under a single org, but the
+    constitution designates `speckit` as the central governance home
+    (Principle IV), so policy + workflows live there rather than in a separate
+    `.github` repo. (Org-level *default* workflows remain an option later for
+    convenience without changing the source of truth.)
   - *Copied per-repo pipelines*: violates SC-005 (bespoke logic) and FR-003
     (single source of truth).
   - *External CI (CircleCI/GitLab/Jenkins)*: adds infrastructure to run and

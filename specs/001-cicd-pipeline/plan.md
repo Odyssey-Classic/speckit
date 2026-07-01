@@ -44,8 +44,9 @@ release scripts, plus end-to-end "harness repo" jobs that exercise a caller
 workflow against deliberately failing and passing fixtures.
 
 **Target Platform**: GitHub-hosted (and self-hosted-capable) CI runners,
-Linux primary. Consumed by repositories across multiple GitHub owners
-(`Odyssey-Classic/*` and `clowenhg/*` today).
+Linux primary. Consumed by repositories under a single GitHub organization
+(`Odyssey-Classic/*`); any repo currently outside the org is expected to move
+under it.
 
 **Project Type**: CI/CD infrastructure + governance tooling (not application
 code). Artifacts are reusable workflows, composite actions, policy
@@ -56,8 +57,8 @@ target, not a promise). Design goal: gates add negligible overhead beyond the
 adapter command's own runtime; gate feedback is automatic and definitive.
 
 **Constraints**:
-- Must hold for **any number** of repositories and applications, across
-  multiple GitHub owners (spec Assumptions; [[never-assume-repo-count]]).
+- Must hold for **any number** of repositories and applications under the
+  single Odyssey organization (spec Assumptions; [[never-assume-repo-count]]).
 - Adoption MUST be configuration-only: zero bespoke gate logic per repo
   (SC-005).
 - Strict SemVer; pre-1.0 releases must visibly disclaim compatibility
@@ -69,6 +70,23 @@ adapter command's own runtime; gate feedback is automatic and definitive.
 **Scale/Scope**: Small contributor base today; design must not assume it.
 Initial rollout: this repo (governed/docs-only profile) + `ody-server` (Go
 profile) as the proving ground, then the remaining application repos.
+
+## Repositories Affected
+
+Per Constitution → Development Workflow → Cross-repository coordination. This
+feature is built almost entirely in `speckit`; consuming repos adopt by
+reference (configuration-only), so `server` is the sole proving-ground consumer
+changed within this feature's scope.
+
+| Order | Repository | What changes here | Depends on / coordinates with |
+|-------|------------|-------------------|-------------------------------|
+| 1 | speckit | The entire central foundation: reusable workflows (`gate`, `release`, `spec-trace`), composite actions, `policy/`, `adapters/`, `docs/cicd/`, `tests/`. Dogfoods its own gate via the `docs-only` profile. | — (self-contained) |
+| 2 | server | Proving-ground caller workflows (`.github/workflows/ci.yml` + `release.yml`, `adapter: go`) + branch protection (T050). | Consumes speckit's reusable workflows (order 1) |
+
+**Future consumers (not changed here):** `client`, `proto`, `admin-tools`, and
+`registry` adopt the same gates by reference as they come online —
+configuration-only onboarding tracked as their own work, not part of 001's core
+scope (see T053 and "Deferred to /speckit-tasks or later").
 
 ## Constitution Check
 
@@ -144,7 +162,7 @@ tests/
 ├── fixtures/                # Pass/fail sample changes per gate category
 └── e2e/                     # Harness-repo jobs exercising caller workflows
 
-# Consuming repo (e.g., clowenhg/ody-server) — thin, generated from template
+# Consuming repo (e.g., Odyssey-Classic/ody-server) — thin, generated from template
 .github/workflows/
 ├── ci.yml                   # `uses: Odyssey-Classic/speckit/.github/workflows/gate.yml@vX`
 └── release.yml              # `uses: …/release.yml@vX` with adapter: go
@@ -155,8 +173,9 @@ policy live in `speckit` (the constitutionally-designated central governance
 repo), versioned and pinned by consumers. Consuming repositories contain only
 declarative caller workflows naming their adapter — making adoption pure
 configuration (SC-005) and keeping a single point of policy truth (FR-003,
-FR-020). Cross-owner consumption works via fully-qualified
-`owner/repo/.github/workflows/file.yml@ref` references.
+FR-020). All repos live under the one Odyssey organization, so consumption
+uses simple `Odyssey-Classic/<repo>/.github/workflows/file.yml@ref`
+references.
 
 ## Complexity Tracking
 

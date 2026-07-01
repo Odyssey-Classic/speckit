@@ -45,7 +45,7 @@ store — the pinned `uses:` ref is the record of truth.
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `repo` | string | `owner/name` (multi-owner aware). |
+| `repo` | string | `Odyssey-Classic/<name>` (single org). |
 | `pinned_policy_version` | SemVer ref | The `@vX` in `uses:`; equals the policy version this repo implements (FR-018). |
 | `adapter` | enum/string | Ecosystem adapter id (`go`, `node`, `docs-only`, …). |
 | `license_side` | enum | `agpl-core` \| `apache-edge` — declared per repo (Constitution III). |
@@ -141,6 +141,7 @@ The link from a PR to the central spec/version that authorized it (D9, FR-017).
 - **Single source of policy**: every Repository Adoption resolves to exactly
   one Gate Policy version; there is no per-repo policy fork (FR-003).
 - **Count-agnostic**: nothing above assumes a fixed number of repositories,
-  applications, owners, or adapters ([[never-assume-repo-count]]).
+  applications, or adapters ([[never-assume-repo-count]]). All repos live under
+  the single Odyssey organization.
 - **No interop modeling**: there is intentionally no entity relating one
   application's version to another's — interoperability is out of scope.
