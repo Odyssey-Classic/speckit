@@ -13,9 +13,10 @@ description: "Task list template for feature implementation"
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
-## Format: `[ID] [P?] [Story] Description`
+## Format: `[ID] [P?] [Repo?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
+- **[Repo]**: Which repository the task lands in (e.g., server, client, proto). For multi-repository features, either tag every task or — when one repo dominates — declare a default repo once (e.g., under Prerequisites) and tag only the tasks that land elsewhere. Omit entirely for single-repo features.
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
 - Include exact file paths in descriptions
 
@@ -244,6 +245,7 @@ With multiple developers:
 ## Notes
 
 - [P] tasks = different files, no dependencies
+- [Repo] tags a task's repository in multi-repo features; when one repo dominates, declare a default once and tag only the exceptions; omit for single-repo
 - [Story] label maps task to specific user story for traceability
 - Each user story should be independently completable and testable
 - Verify tests fail before implementing

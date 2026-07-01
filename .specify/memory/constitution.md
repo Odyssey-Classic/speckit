@@ -1,18 +1,23 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 0.4.0 → 1.0.0 (MAJOR: formal ratification of the draft
-  constitution; draft status removed, ratification date set)
-Modified principles: none (content unchanged from v0.4.0 draft)
+Version change: 1.0.0 → 1.1.0 (MINOR: materially expanded the Development
+  Workflow → Cross-repository coordination rule — multi-repo plans MUST declare
+  the repositories they change and their coordination order, and task breakdowns
+  MUST attribute each task to a repository)
+Modified principles: none
+Modified sections:
+  - Development Workflow → Cross-repository coordination (expanded with the
+    repository-scope declaration + per-task repository attribution requirement)
 Added sections: none
-Removed sections: draft status banner
+Removed sections: none
 Templates requiring updates:
-  - ✅ .specify/templates/plan-template.md (Constitution Check gate already
-    generic; gates derive from this document — no edit needed)
-  - ✅ .specify/templates/spec-template.md (no constitution-specific sections
-    required — no edit needed)
-  - ✅ .specify/templates/tasks-template.md (security hardening already present
-    in Polish phase; Principle V references unchanged — no edit needed)
+  - ✅ .specify/templates/plan-template.md (added "## Repositories Affected"
+    section)
+  - ✅ .specify/templates/tasks-template.md (added per-task [Repo] tag to the
+    task format + Notes)
+  - ✅ .specify/templates/spec-template.md (no change — repository scope is a
+    plan-level concern; specs remain technology-free)
 Follow-up TODOs:
   - Author follow-up artifacts implied by the constitution: contributor code
     of conduct; vulnerability-disclosure process (Principle VIII)
@@ -213,7 +218,10 @@ constitutional amendment.
   document before design and again after it.
 - **Cross-repository coordination**: Work affecting more than one repository
   MUST be specified here first; downstream repositories track their specs'
-  ratified versions.
+  ratified versions. A multi-repository feature's implementation plan MUST
+  enumerate the repositories it changes and their coordination order, and its
+  task breakdown MUST attribute each task to a repository — so cross-repo scope
+  is declared up front, not reconstructed from PRs.
 - **Review**: Every PR in every repository is reviewed for compliance with
   this constitution. Reviewers MUST block changes that violate a principle
   unless a documented, justified exception is recorded in the plan's
@@ -241,4 +249,4 @@ Conflicts resolve in the constitution's favor.
   document. Complexity and exceptions MUST be justified in writing in the
   plan's Complexity Tracking section.
 
-**Version**: 1.0.0 | **Ratified**: 2026-06-05 | **Last Amended**: 2026-06-05
+**Version**: 1.1.0 | **Ratified**: 2026-06-05 | **Last Amended**: 2026-06-30
