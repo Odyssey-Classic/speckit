@@ -18,9 +18,9 @@ until each lands in a single repository.
 | Repository | License side | Domain | Charter |
 |------------|--------------|--------|---------|
 | `server` | AGPL-3.0 (engine core) | The authoritative engine that runs persistent, shared worlds. | [server.md](./server.md) |
-| `client` | Apache-2.0 (edge) | The web-first player client — the window into a world run elsewhere. | [client.md](./client.md) |
-| `proto` | Apache-2.0 (edge) | The shared protocol contract between Odyssey applications. | [proto.md](./proto.md) |
-| `admin-tools` | Apache-2.0 (edge) | Operator and host-facing tooling for running a server. | [admin-tools.md](./admin-tools.md) |
+| `client` | Apache-2.0 (ecosystem edge) | The web-first player client — the window into a world run elsewhere. | [client.md](./client.md) |
+| `proto` | Apache-2.0 (ecosystem edge) | The shared protocol contract between Odyssey applications. | [proto.md](./proto.md) |
+| `admin-tools` | Apache-2.0 (ecosystem edge) | Operator and host-facing tooling for running a server. | [admin-tools.md](./admin-tools.md) |
 | `registry` | AGPL-3.0 (engine core) | Identity and server-directory service that game servers register with. | [registry.md](./registry.md) |
 | `speckit` | AGPL-3.0 (engine core) | Central governance and specification for the Odyssey project. | [speckit.md](./speckit.md) |
 
