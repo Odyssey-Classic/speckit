@@ -110,8 +110,10 @@ principle removed or redefined.
 
 ```
 speckit/charters/
-  README.md        # registry: table of every repo — name · license side ·
-                   #   one-line domain · link to charter; links to decisions.md
+  README.md        # registry: pure index — table of every repo (name · link
+                   #   to charter); links to decisions.md. No license side or
+                   #   domain here — those live only in each charter, so the
+                   #   registry cannot drift against them.
   _template.md     # the four-field charter shape
   server.md
   client.md
