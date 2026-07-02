@@ -126,25 +126,26 @@ speckit/charters/
 
 ### 3. Per-repository stub
 
-Each repository carries a compact `CHARTER.md` at its root: its one-line
-domain, its license side, and a link to the authoritative
-`speckit/charters/<repo>.md` at its **live location on `speckit` (not a pinned
-revision)**.
+Each repository carries a compact `CHARTER.md` at its root that is a **pure
+pointer** — a link to the authoritative `speckit/charters/<repo>.md` at its
+**live location on `speckit` (not a pinned revision)** — and nothing else. It
+restates no attributes: not the domain, not the license side, not the scope.
 
-Linking to the current charter — rather than a pinned ref — is deliberate. A
-charter is living governance whose scope lists grow, so a reader should always
-reach the latest; and pinning would force every repo's stub to be re-pinned
-after each recorded scoping decision, reintroducing exactly the cross-repo
-coupling the self-contained-charter principle removes. (This is unlike Spec
-001's PR-to-spec reference, which pins a revision precisely because it is a
-point-in-time authorization claim; a charter stub is a signpost to living
-governance, like a link to the constitution.)
+Two reasons. First, linking to the current charter — rather than a pinned ref —
+is deliberate: a charter is living governance whose scope lists grow, so a
+reader should always reach the latest, and pinning would force every repo's
+stub to be re-pinned after each recorded scoping decision, reintroducing exactly
+the cross-repo coupling the self-contained-charter principle removes. (This is
+unlike Spec 001's PR-to-spec reference, which pins a revision precisely because
+it is a point-in-time authorization claim; a charter stub is a signpost to
+living governance, like a link to the constitution.)
 
-The stub carries only the two **stable** fields — domain and license side —
-and the link; it deliberately excludes the growing scope. As a result,
-recording a scoping decision touches only `speckit` (the stubs never move), and
-a stub changes only when a repo's domain or license side changes — both rare,
-deliberate events (a license-side change is itself a constitutional amendment).
+Second, the stub restates nothing because every attribute already has an
+authoritative home: domain and scope live in the charter, and a repository's
+license is authoritatively declared by its own `LICENSE` file — not by any prose
+duplicated elsewhere. Keeping the stub attribute-free means recording a scoping
+decision (or any other change) touches only `speckit`; the stub itself never has
+to change.
 
 ## Initial license-side assignments
 
