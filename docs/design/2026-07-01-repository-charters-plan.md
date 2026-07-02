@@ -18,7 +18,7 @@ Every task's requirements implicitly include these:
 - **Constitution altitude:** no languages, runtimes, transports, or implementation choices in any charter. Describe responsibility in the constitution's register.
 - **Out of scope = pure disclaimer:** list what the repo does *not* own, with **no** "→ goes to X" redirect.
 - **License sides (fixed):** `server`, `registry`, `speckit` → AGPL-3.0 (engine core); `client`, `proto`, `admin-tools` → Apache-2.0 (ecosystem edge).
-- **Stub = stable fields only:** a per-repo `CHARTER.md` carries one-line domain + license side + a link to the charter at its **live location on `speckit main`** (`/blob/main/…`, never a pinned commit). It never restates the growing scope.
+- **Stub = pure pointer:** a per-repo `CHARTER.md` is just a link to the charter at its **live location on `speckit main`** (`/blob/main/…`, never a pinned commit) — it restates no attributes. Domain and scope live in the charter; a repo's license is authoritatively declared by its own `LICENSE` file.
 - **A task belongs to exactly one repository.** Features may span repos (plan's Repositories Affected table); tasks do not.
 - **No automation/enforcement** (YAGNI): no CI gate, no stub↔charter auto-sync.
 - **Amendment is MINOR** (1.1.0 → 1.2.0): use the `speckit-constitution` skill; do not hand-edit `constitution.md`.
@@ -412,7 +412,7 @@ Do not start until Phase 1 is merged to `speckit main`, so each stub's link reso
 
 ### Task 5: Add `CHARTER.md` stub to each application repo
 
-Repeat for each of: `server`, `client`, `proto`, `admin-tools`, `registry`. Substitute per-repo values from the registry (domain line + license side).
+Repeat for each of: `server`, `client`, `proto`, `admin-tools`, `registry`. The stub is identical bar the per-repo charter link; it restates no attributes.
 
 **Files (per repo):**
 - Create: `<repo>/CHARTER.md`
@@ -423,24 +423,20 @@ Repeat for each of: `server`, `client`, `proto`, `admin-tools`, `registry`. Subs
 git -C <repo> worktree add ../<repo>-charter-stub -b charter-stub origin/main
 ```
 
-- [ ] **Step 2: Create `CHARTER.md`** in the worktree (example shown for `server`; swap the domain line and license side per repo):
+- [ ] **Step 2: Create `CHARTER.md`** in the worktree (example shown for `server`; swap only the `<repo>.md` in the link per repo):
 
 ```markdown
-# server — Charter (stub)
+# Charter
 
-`server` is **AGPL-3.0 (engine core)**. Domain: the authoritative engine that
-runs persistent, shared worlds.
-
-This is a compact pointer. The **authoritative, always-current** charter —
-including the full, growing in/out-of-scope — lives in `speckit`:
+This repository's charter — what belongs here and what doesn't — is governed
+centrally in `speckit`, the single source of truth:
 
 https://github.com/Odyssey-Classic/speckit/blob/main/charters/server.md
 
-Scope is not restated here; read it at the source. (The link targets `main`,
-not a pinned revision, so it always reflects the current charter.)
+The link tracks `main`, so it always reflects the current charter.
 ```
 
-- [ ] **Step 3: Verify** the link path matches the repo (`…/charters/<repo>.md`) and points at `/blob/main/` (not a commit SHA), and that the stub restates no scope. Run: `grep -n "blob/main/charters" <repo>-charter-stub/CHARTER.md`
+- [ ] **Step 3: Verify** the link path matches the repo (`…/charters/<repo>.md`) and points at `/blob/main/` (not a commit SHA), and that the stub restates no attributes (pure pointer). Run: `grep -n "blob/main/charters" <repo>-charter-stub/CHARTER.md`
   Expected: one match with the correct `<repo>.md`.
 
 - [ ] **Step 4: Commit, push, open PR**
