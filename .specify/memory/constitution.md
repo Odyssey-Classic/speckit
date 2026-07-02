@@ -1,26 +1,30 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.0 → 1.1.0 (MINOR: materially expanded the Development
-  Workflow → Cross-repository coordination rule — multi-repo plans MUST declare
-  the repositories they change and their coordination order, and task breakdowns
-  MUST attribute each task to a repository)
+Version change: 1.1.0 → 1.2.0 (MINOR: added a Development Workflow → Repository
+  Charters rule — every repository has a centrally-governed, self-contained
+  charter declaring its domain, license side, and in/out-of-scope
+  responsibilities; unclear routing is founder-decided and recorded; a task
+  belongs to exactly one repository)
 Modified principles: none
-Modified sections:
-  - Development Workflow → Cross-repository coordination (expanded with the
-    repository-scope declaration + per-task repository attribution requirement)
-Added sections: none
+Added sections:
+  - Development Workflow → Repository Charters (new subsection, after
+    Cross-repository coordination)
+Modified sections: none
 Removed sections: none
 Templates requiring updates:
-  - ✅ .specify/templates/plan-template.md (added "## Repositories Affected"
-    section)
-  - ✅ .specify/templates/tasks-template.md (added per-task [Repo] tag to the
-    task format + Notes)
-  - ✅ .specify/templates/spec-template.md (no change — repository scope is a
-    plan-level concern; specs remain technology-free)
+  - ✅ .specify/templates/plan-template.md (no change — the "## Repositories
+    Affected" section from v1.1.0 remains the routing mechanism charters feed)
+  - ✅ .specify/templates/tasks-template.md (no change — the per-task [Repo] tag
+    from v1.1.0 remains; charters inform which repository a task lands in)
+  - ✅ .specify/templates/spec-template.md (no change — charters are governance;
+    specs remain technology-free)
 Follow-up TODOs:
-  - Author follow-up artifacts implied by the constitution: contributor code
-    of conduct; vulnerability-disclosure process (Principle VIII)
+  - Author the charter artifacts under charters/ (registry, template, six
+    charters, decisions log) + per-repo CHARTER.md stubs (see
+    docs/design/2026-07-01-repository-charters-design.md)
+  - (carried over) Author follow-up artifacts implied by the constitution:
+    contributor code of conduct; vulnerability-disclosure process (Principle VIII)
 -->
 
 # Odyssey Constitution
@@ -222,6 +226,17 @@ constitutional amendment.
   enumerate the repositories it changes and their coordination order, and its
   task breakdown MUST attribute each task to a repository — so cross-repo scope
   is declared up front, not reconstructed from PRs.
+- **Repository Charters**: Every repository has a charter, governed centrally
+  in this repository, declaring its domain, its license side (Principle III),
+  and its in-scope and out-of-scope responsibilities. A charter is
+  self-contained — it describes only its own repository and never redirects to
+  another. When the repository a piece of work belongs to is not strictly clear
+  from the charters, the founder decides and the decision is recorded in the
+  charter decisions log; recorded patterns MAY be promoted into a charter's
+  scope. Standing up a new repository is one such recorded decision. A task
+  belongs to exactly one repository: a feature MAY span repositories (declared
+  in a plan's Repositories Affected table), but its task breakdown MUST
+  decompose cross-repository work until each task lands in a single repository.
 - **Review**: Every PR in every repository is reviewed for compliance with
   this constitution. Reviewers MUST block changes that violate a principle
   unless a documented, justified exception is recorded in the plan's
@@ -249,4 +264,4 @@ Conflicts resolve in the constitution's favor.
   document. Complexity and exceptions MUST be justified in writing in the
   plan's Complexity Tracking section.
 
-**Version**: 1.1.0 | **Ratified**: 2026-06-05 | **Last Amended**: 2026-06-30
+**Version**: 1.2.0 | **Ratified**: 2026-06-05 | **Last Amended**: 2026-07-01
