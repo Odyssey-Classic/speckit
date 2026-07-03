@@ -95,7 +95,7 @@ scope (see T053 and "Deferred to /speckit-tasks or later").
 | Principle | Relevance | Verdict |
 |-----------|-----------|---------|
 | **IV. Spec-First, Centrally Governed** | Plan derives from the ratified, merged spec (PR #2); reusable workflows live centrally in this repo, satisfying "defined once, centrally" (FR-003, FR-020). | ✅ Pass |
-| **IV. Cross-repo declaration (v1.1.0)** | Multi-repo feature — the `## Repositories Affected` section declares affected repos + coordination order, and tasks attribute to a repo (default `speckit`; T050 → `server`). | ✅ Pass |
+| **IV. Cross-repo declaration (v1.1.0) + task→repo atomicity (v1.2.0)** | Multi-repo feature — the `## Repositories Affected` section declares affected repos + coordination order (v1.1.0), and every task lands in exactly one repository (default `speckit`; T050 → `server`), satisfying the v1.2.0 rule that a task belongs to exactly one repository. | ✅ Pass |
 | **V. Tested to Be Trusted** | The gate tooling itself is tested (fixture repos, shell unit tests); the foundation is what *enforces* tests in every other repo. A gate change requires a failing-then-passing fixture. | ✅ Pass |
 | **VI. Docs as a Feature** | Onboarding guide, gate-policy reference, versioning policy, and release runbook ship as part of this feature, not after. | ✅ Pass |
 | **VII. Simplicity & YAGNI** | Reuses platform-native primitives (Actions reusable workflows, GitHub Releases, native attestations) instead of bespoke infrastructure. No custom CI server, no custom artifact registry. | ✅ Pass |
