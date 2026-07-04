@@ -12,19 +12,31 @@ SHELL := /bin/bash
 # .specify/ (the pre-existing SpecKit framework's own scripts — not part of
 # this feature's deliverable, and not ours to fix here) and
 # tests/bats-core/ (a vendored third-party copy, linted upstream, not here).
-SHELL_LINT_DIRS := .github adapters policy tests/unit tests/fixtures tests/e2e
+SHELL_LINT_DIRS := .github adapters policy scripts tests/unit tests/fixtures tests/e2e
 
-.PHONY: lint lint-actions lint-shell test
+.PHONY: lint lint-actions lint-composite-actions lint-shell test
 
-lint: lint-actions lint-shell
+lint: lint-actions lint-composite-actions lint-shell
 
 lint-actions:
-	@echo "==> actionlint (.github/workflows, .github/actions)"
-	@if find .github/workflows .github/actions -type f \( -name '*.yml' -o -name '*.yaml' \) 2>/dev/null | grep -q .; then \
+	@echo "==> actionlint (.github/workflows)"
+	@if find .github/workflows -type f \( -name '*.yml' -o -name '*.yaml' \) 2>/dev/null | grep -q .; then \
 		actionlint -config-file .github/actionlint.yaml; \
 	else \
-		echo "no workflow/action YAML yet — skipping actionlint"; \
+		echo "no workflow YAML yet — skipping actionlint"; \
 	fi
+# NOTE: actionlint only validates a composite action's *metadata*
+# (inputs/outputs/branding/runner name), and only once some workflow
+# references it via `uses:` — it does not parse a standalone action.yml at
+# all, and does not check `runs.steps[].run` shell content even when a
+# workflow does reference it (see docs/cicd/secure-defaults.md and
+# scripts/lint-composite-actions.sh's header comment for the upstream
+# citation). `lint-composite-actions` below is what actually holds
+# composite-action shell to the shellcheck bar in the meantime.
+
+lint-composite-actions:
+	@echo "==> shellcheck (composite action run: steps — actionlint doesn't check these)"
+	@scripts/lint-composite-actions.sh
 
 lint-shell:
 	@echo "==> shellcheck"

@@ -1,0 +1,101 @@
+# .github/actions/harden/action.yml
+#
+# Runtime half of the secure-by-default workflow baseline (T011, Foundational
+# — see docs/cicd/secure-defaults.md for the full convention). Every reusable
+# workflow authored later (gate.yml T016, release.yml T035, spec-trace.yml
+# T045) that runs a secret- or signing-key-bearing job MUST call this action
+# as that job's first step (Constitution Principle VIII; FR-020; SC-008).
+#
+# WHAT THIS ACTION CAN AND CANNOT DO
+#   A composite action runs as steps inside an already-started job — it
+#   cannot retroactively change that job's `permissions:` grant, its
+#   trigger, or whether secrets were even made available to the run. Those
+#   are workflow-level decisions declared by the calling workflow's YAML
+#   (see docs/cicd/secure-defaults.md, "Workflow-level controls"). What this
+#   action *can* enforce, at runtime, inside the job:
+#
+#     1. Fail closed, before any later step executes, if the job declares
+#        `secrets-present: true` and the triggering event is an untrusted
+#        fork pull-request context (a plain `pull_request` whose head repo
+#        is a fork, or a `pull_request_target` at all — the latter always
+#        runs with base-repo secrets against untrusted checked-out code and
+#        must never be paired with secrets).
+#     2. Mask any caller-declared sensitive value via `::add-mask::`, on
+#        top of GitHub's automatic masking of registered secrets — for
+#        derived/computed values (e.g. a token minted mid-job) that aren't
+#        already a registered `secrets.*` entry.
+#
+# This deliberately uses only built-in `run:`/`shell:` steps and workflow
+# commands (`::add-mask::`, `::error::`) — no third-party marketplace
+# action — per the feature's YAGNI constraint (no added supply-chain
+# surface for a security-baseline dependency).
+
+name: "Harden"
+description: >-
+  Secure-by-default runtime guardrails: masks caller-declared sensitive
+  values and fails closed if a secret-bearing job is running in an
+  untrusted fork pull-request context.
+
+inputs:
+  secrets-present:
+    description: >-
+      Set to "true" by the calling job if it accesses any secret or
+      signing-key material (release signing, registry/publish tokens,
+      etc.). Governs whether this run is checked against the untrusted
+      fork-PR rule below. Default "false" — a job with no secrets is never
+      blocked by this action.
+    required: false
+    default: "false"
+  sensitive-values:
+    description: >-
+      Optional newline-separated list of values to mask in log output via
+      `::add-mask::`, in addition to GitHub's automatic masking of
+      registered secrets (e.g. a token derived mid-job). Blank lines are
+      ignored.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Fail closed on untrusted fork-PR context with secrets
+      shell: bash
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        HEAD_IS_FORK: ${{ github.event.pull_request.head.repo.fork }}
+        SECRETS_PRESENT: ${{ inputs.secrets-present }}
+      run: |
+        set -euo pipefail
+
+        if [ "${SECRETS_PRESENT}" != "true" ]; then
+          echo "harden: secrets-present=false — nothing to guard, continuing."
+          exit 0
+        fi
+
+        case "${EVENT_NAME}" in
+          pull_request_target)
+            echo "::error::harden: refusing to run — pull_request_target exposes base-repo secrets to a job that can check out untrusted PR content. Never combine this trigger with secrets-present: true." >&2
+            exit 1
+            ;;
+          pull_request)
+            if [ "${HEAD_IS_FORK}" = "true" ]; then
+              echo "::error::harden: refusing to run — this is a pull_request from a fork and secrets-present: true. Untrusted fork pull requests must never reach a secret-bearing step." >&2
+              exit 1
+            fi
+            ;;
+        esac
+
+        echo "harden: trusted context (event=${EVENT_NAME}) — secret-bearing step permitted."
+
+    - name: Mask declared sensitive values
+      shell: bash
+      env:
+        SENSITIVE_VALUES: ${{ inputs.sensitive-values }}
+      run: |
+        set -euo pipefail
+
+        while IFS= read -r line; do
+          if [ -n "$line" ]; then
+            echo "::add-mask::${line}"
+          fi
+        done <<< "${SENSITIVE_VALUES}"
