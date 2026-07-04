@@ -9,6 +9,6 @@ self-hosted-runner:
   # Labels of self-hosted runners used by any workflow in this repo.
   labels: []
 
-config-variables:
-  # Names of `vars.*` configuration variables referenced by any workflow.
-  variables: []
+# Names of `vars.*` configuration variables any workflow may reference.
+# Empty list = none allowed yet; add names here as they are introduced.
+config-variables: []

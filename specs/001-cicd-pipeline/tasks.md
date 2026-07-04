@@ -25,10 +25,10 @@ description: "Task list for CI/CD Pipeline, Versioning & Release Process"
 
 **Purpose**: Repository scaffolding and the test/lint toolchain everything else builds on.
 
-- [ ] T001 Create the central directory structure per plan.md (`.github/workflows/`, `.github/actions/`, `policy/`, `adapters/`, `docs/cicd/`, `tests/fixtures/`, `tests/e2e/`) with `.gitkeep` placeholders
-- [ ] T002 [P] Add workflow/shell linting config — `actionlint` + `shellcheck` configuration and a root `Makefile` (or `tests/run.sh`) test/lint entrypoint
-- [ ] T003 [P] Initialize the `bats` shell-test harness under `tests/` (vendor/submodule bats-core; create `tests/unit/` layout)
-- [ ] T004 [P] Seed `policy/VERSION` with the initial policy version (`1.0.0`) matching the consumer pin scheme (FR-018)
+- [X] T001 Create the central directory structure per plan.md (`.github/workflows/`, `.github/actions/`, `policy/`, `adapters/`, `docs/cicd/`, `tests/fixtures/`, `tests/e2e/`) with `.gitkeep` placeholders
+- [X] T002 [P] Add workflow/shell linting config — `actionlint` + `shellcheck` configuration and a root `Makefile` (or `tests/run.sh`) test/lint entrypoint
+- [X] T003 [P] Initialize the `bats` shell-test harness under `tests/` (vendor/submodule bats-core; create `tests/unit/` layout)
+- [X] T004 [P] Seed `policy/VERSION` with the initial policy version (`1.0.0`) matching the consumer pin scheme (FR-018)
 
 ---
 
