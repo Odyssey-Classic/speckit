@@ -80,6 +80,11 @@ license_side_set=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --license-side)
+      if [ "$#" -lt 2 ]; then
+        echo "::error::check-license-side: --license-side requires a value." >&2
+        usage
+        exit "${EXIT_USAGE}"
+      fi
       license_side="${2:-}"
       license_side_set=1
       shift 2

@@ -106,3 +106,9 @@ setup() {
   run "$SCRIPT" --changed-files "${FIXTURES}/does-not-exist.files"
   [ "$status" -ne 0 ]
 }
+
+@test "--changed-files as the last token with no value is a usage error, not a silent exit (dangling-flag footgun)" {
+  run "$SCRIPT" --changed-files
+  [ "$status" -eq 2 ]
+  [ -n "$output" ]
+}

@@ -141,6 +141,31 @@ EOF
   [ "$status" -ne 0 ]
 }
 
+# --- dangling value-taking flags (last token, no value) ----------------------
+#
+# Each of --adapter/--category/--policy consumes its value via `shift 2`.
+# Given as the very last command-line token, there is no second positional
+# parameter to shift past — must hit the script's own usage-error path
+# (EXIT_USAGE=2 + a message), never abort silently.
+
+@test "--adapter as the last token with no value is a usage error, not a silent exit (dangling-flag footgun)" {
+  run "$RUN_GATE" --category tests --policy "$POLICY" --adapter
+  [ "$status" -eq 2 ]
+  [ -n "$output" ]
+}
+
+@test "--category as the last token with no value is a usage error, not a silent exit (dangling-flag footgun)" {
+  run "$RUN_GATE" --adapter "$ADAPTER" --policy "$POLICY" --category
+  [ "$status" -eq 2 ]
+  [ -n "$output" ]
+}
+
+@test "--policy as the last token with no value is a usage error, not a silent exit (dangling-flag footgun)" {
+  run "$RUN_GATE" --adapter "$ADAPTER" --category tests --policy
+  [ "$status" -eq 2 ]
+  [ -n "$output" ]
+}
+
 # --- security threshold sourced from policy at runtime (carried review note) -
 
 @test "security hook receives min_severity_block=high sourced from the policy fixture" {

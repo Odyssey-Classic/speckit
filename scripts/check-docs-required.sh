@@ -109,6 +109,11 @@ exempt=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --changed-files)
+      if [ "$#" -lt 2 ]; then
+        echo "::error::check-docs-required: --changed-files requires a value." >&2
+        usage
+        exit "${EXIT_USAGE}"
+      fi
       changed_files_source="${2:-}"
       shift 2
       ;;

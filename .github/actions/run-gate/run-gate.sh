@@ -75,14 +75,29 @@ policy_file="${DEFAULT_POLICY_FILE}"
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --adapter)
+      if [ "$#" -lt 2 ]; then
+        echo "::error::run-gate: --adapter requires a value." >&2
+        usage
+        exit "${EXIT_USAGE}"
+      fi
       adapter_file="${2:-}"
       shift 2
       ;;
     --category)
+      if [ "$#" -lt 2 ]; then
+        echo "::error::run-gate: --category requires a value." >&2
+        usage
+        exit "${EXIT_USAGE}"
+      fi
       category="${2:-}"
       shift 2
       ;;
     --policy)
+      if [ "$#" -lt 2 ]; then
+        echo "::error::run-gate: --policy requires a value." >&2
+        usage
+        exit "${EXIT_USAGE}"
+      fi
       policy_file="${2:-}"
       shift 2
       ;;

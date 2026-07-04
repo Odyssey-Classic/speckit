@@ -94,3 +94,9 @@ setup() {
   run "$SCRIPT" --bogus-flag agpl-core
   [ "$status" -ne 0 ]
 }
+
+@test "--license-side as the last token with no value is a usage error, not a silent exit (dangling-flag footgun)" {
+  run "$SCRIPT" --license-side
+  [ "$status" -eq 2 ]
+  [ -n "$output" ]
+}
