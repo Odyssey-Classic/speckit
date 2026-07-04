@@ -1,0 +1,83 @@
+# adapters/docs-only/adapter.yml
+#
+# docs-only ecosystem adapter — the `speckit` governance profile
+# (configuration only; FR-003, SC-005). See adapters/_template/adapter.yml
+# for the full contract these hooks satisfy, what fields mean, and what
+# must never live here (thresholds, exemptions, bypass logic — those
+# belong solely to policy/gate-policy.yml).
+#
+# This is the spec/governance repo is governed, not exempt (spec Edge
+# Cases): every hook below maps a real check onto a repo whose "source" is
+# specs, policy, and workflow definitions rather than compiled code (see
+# plan.md Structure Decision). Reference consumer: `speckit` itself
+# (T023, self-adoption caller `.github/workflows/ci.yml`).
+
+adapter:
+  id: docs-only
+  ecosystem: docs-only
+
+hooks:
+  test:
+    description: >-
+      Document/spec validity (gate-policy category: tests) — this repo's
+      "tests" are its own governance artifacts: every feature directory
+      under specs/ must carry a spec.md, and every adapter directory must
+      itself parse as valid YAML (dogfooding this very contract).
+    run: |
+      set -e
+      for d in specs/*/; do
+        test -f "${d}spec.md" || { echo "missing spec.md in ${d}" >&2; exit 1; }
+      done
+      for f in adapters/*/adapter.yml; do
+        yq '.' "$f" >/dev/null
+      done
+
+  lint:
+    description: >-
+      Constitution-compliance check (gate-policy category: quality) —
+      every plan.md must carry a completed "Constitution Check" section.
+      Stands in for lint/format on a repo with no application source to
+      format; the license-side-declaration half of `quality` is checked
+      centrally against the caller's `license_side` input, same as every
+      other adapter.
+    run: |
+      set -e
+      for p in specs/*/plan.md; do
+        grep -q '^## Constitution Check' "$p" || { echo "missing Constitution Check in $p" >&2; exit 1; }
+      done
+
+  security:
+    description: >-
+      Secret scan only (gate-policy category: security) — this repo has no
+      application dependencies and no compiled code, so the `dependencies`
+      and `sast` members of security.include: [dependencies, secrets,
+      sast] have nothing to scan here; `secrets` is the applicable means
+      for a docs/governance repo.
+    run: "gitleaks detect --no-banner --redact"
+
+  docs:
+    description: >-
+      Docs present/valid (gate-policy category: docs) — the governance
+      docs this repo ships for every other repo must themselves exist and
+      be non-empty; it cannot skip the gate it defines for everyone else.
+    run: |
+      set -e
+      test -s CLAUDE.md
+      test -s .specify/memory/constitution.md
+
+  build:
+    description: >-
+      No-op — speckit ships specs, policy, and workflow definitions, not a
+      compiled artifact; there is nothing to build (plan.md Structure
+      Decision: consumed by reference, not by binary). Declared (not
+      omitted) to keep the hook set uniform across adapters.
+    run: ": # no-op — no build artifact for a docs/governance repo"
+
+  version-embed:
+    description: >-
+      No-op — speckit's own version identity is its git tag
+      (policy_version / policy/VERSION, pinned by consumers per D10), not
+      a field embedded in a built artifact; there is no build to embed
+      into. Declared (not omitted) to keep the hook set uniform across
+      adapters.
+    run: ": # no-op — consumed by git ref, not a built artifact"

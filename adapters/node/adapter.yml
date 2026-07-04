@@ -1,0 +1,61 @@
+# adapters/node/adapter.yml
+#
+# Node / web-client ecosystem adapter — configuration only (FR-003, SC-005).
+# See adapters/_template/adapter.yml for the full contract these hooks
+# satisfy, what fields mean, and what must never live here (thresholds,
+# exemptions, bypass logic — those belong solely to policy/gate-policy.yml).
+#
+# Reference consumer: `client` (TypeScript / PixiJS v8) once it adopts the
+# gate (plan.md Repositories Affected; deferred per-repo rollout beyond the
+# `server` proving ground).
+
+adapter:
+  id: node
+  ecosystem: node
+
+hooks:
+  test:
+    description: "Project test suite via the declared `test` script, installed from the pinned lockfile (gate-policy category: tests)."
+    run: |
+      npm ci
+      npm test
+
+  lint:
+    description: "ESLint static analysis + Prettier format check (gate-policy category: quality)."
+    run: |
+      npm ci
+      npx eslint .
+      npx prettier --check .
+
+  security:
+    description: >-
+      Dependency vulnerability scan (npm audit) plus a secret scan
+      (gitleaks) — gate-policy security.include: [dependencies, secrets,
+      sast]. SAST coverage comes from ESLint's static analysis (see the
+      lint hook).
+    run: |
+      npm audit --audit-level=high
+      gitleaks detect --no-banner --redact
+
+  docs:
+    description: "Confirm required project documentation exists (gate-policy category: docs). Whether docs were UPDATED for a given change is a diff-based check enforced centrally (T020), not per-adapter."
+    run: "test -s README.md"
+
+  build:
+    description: "Reproducible build from the pinned lockfile (research.md D6)."
+    run: |
+      npm ci
+      npm run build
+
+  version-embed:
+    description: >-
+      Write the derived semver + commit SHA to a generated module the app
+      imports and reports at runtime (contracts/version-derivation.md
+      "Artifact embedding" — the reporting surface is the adapter's
+      choice; here, a generated constants module), then build. $SEMVER and
+      $SHA are supplied as environment variables by derive-version (T028).
+    run: |
+      mkdir -p src/generated
+      printf 'export const VERSION = "%s";\nexport const COMMIT_SHA = "%s";\n' "${SEMVER}" "${SHA}" > src/generated/version.ts
+      npm ci
+      npm run build

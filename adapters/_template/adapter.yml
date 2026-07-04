@@ -1,0 +1,96 @@
+# adapters/_template/adapter.yml
+#
+# ADAPTER CONTRACT (starter template) — copy this directory to
+# adapters/<your-ecosystem>/ to onboard a new language/ecosystem.
+# See also: docs/cicd/ adapter-authoring guide (T053, linked from here once
+# written) and specs/001-cicd-pipeline/contracts/reusable-workflow-interface.md.
+#
+# WHAT THIS FILE IS
+#   The uniform interface the `run-gate` composite action (T017,
+#   .github/actions/run-gate/) and the `derive-version` / `release.yml`
+#   workflows (T028, T035) invoke by name. Given an `adapter:` input (e.g.
+#   `go`, `node`, `docs-only` — see reusable-workflow-interface.md), the
+#   caller looks up `adapters/<adapter>/adapter.yml` and runs the named
+#   hook's `run:` command. Gate categories, thresholds, exemptions, and
+#   bypass rules are decided ONCE, centrally, in `policy/gate-policy.yml`
+#   (contracts/gate-policy.schema.md). This file supplies only the *means*
+#   — the actual command for this ecosystem — never the *whether*
+#   (FR-003, SC-005).
+#
+# WHAT THIS FILE MUST NEVER CONTAIN
+#   - Severity thresholds, pass-percentage rules, retry/skip conditions.
+#   - Exemption labels or bypass logic — that lives only in
+#     `policy/gate-policy.yml`'s `exemptions:` / `bypass:` blocks.
+#   - Anything that changes WHETHER a category gates a merge/release —
+#     only HOW to run its check.
+#   If a hook's check genuinely doesn't apply to this ecosystem, its `run:`
+#   may be a documented no-op (e.g. `: # explanation`) — it must still be
+#   declared with an explanatory comment, never omitted (see
+#   adapters/docs-only/adapter.yml for a worked example).
+#
+# REQUIRED HOOK KEYS
+#   Every adapter (this template included) MUST declare exactly these six
+#   hook keys, so a caller can invoke any adapter's `test` / `lint` / etc.
+#   uniformly without knowing which ecosystem it is. Dropping a hook breaks
+#   that uniformity contract:
+#
+#     test           -> gate-policy category `tests`
+#     lint           -> gate-policy category `quality` (the lint/format
+#                       half; the license-side-declaration half of
+#                       `quality` is checked centrally against the caller's
+#                       `license_side` input, not per-adapter)
+#     security       -> gate-policy category `security`
+#                       (`threshold.include: [dependencies, secrets, sast]`
+#                       — a hook's `run:` may chain multiple tools to cover
+#                       whatever subset is applicable to this ecosystem)
+#     docs           -> gate-policy category `docs`
+#     build          -> the reproducible build step US2/US3 rely on (not
+#                       itself a gate-policy category)
+#     version-embed  -> inject the derived `semver` + commit SHA into the
+#                       build artifact (contracts/version-derivation.md,
+#                       "Artifact embedding"); receives `$SEMVER` and `$SHA`
+#                       as environment variables from `derive-version`
+#                       (T028) at build/release time
+#
+# HOOK SHAPE
+#   hooks.<name>.description : string — one line, what this hook checks/does.
+#   hooks.<name>.run         : string — a shell command (or short, boring
+#                              multi-line script) run from the repo root.
+#                              Exit 0 = pass, non-zero = fail; `run-gate`
+#                              captures stdout/stderr as the evidence
+#                              reported on failure (FR-005). Don't swallow
+#                              failures with `|| true` — a hook that can't
+#                              fail can't gate anything.
+#
+# This template's hooks are intentionally empty placeholders — fill in
+# `run:` for your ecosystem, or replace it with a documented no-op if the
+# check truly does not apply.
+
+adapter:
+  id: _template
+  ecosystem: "REPLACE_ME"   # e.g. go, node, rust — must equal this directory's name
+
+hooks:
+  test:
+    description: "REPLACE_ME — run the test suite (gate-policy category: tests)."
+    run: ""
+
+  lint:
+    description: "REPLACE_ME — lint/format checks (gate-policy category: quality)."
+    run: ""
+
+  security:
+    description: "REPLACE_ME — dependency/secret/SAST scanning (gate-policy category: security)."
+    run: ""
+
+  docs:
+    description: "REPLACE_ME — verify docs are present/valid (gate-policy category: docs)."
+    run: ""
+
+  build:
+    description: "REPLACE_ME — produce a reproducible build artifact."
+    run: ""
+
+  version-embed:
+    description: "REPLACE_ME — embed $SEMVER + $SHA into the build artifact."
+    run: ""
