@@ -73,7 +73,7 @@ description: "Task list for CI/CD Pipeline, Versioning & Release Process"
 - [X] T019 [P] [US1] Quality category license-side declaration check (`agpl-core` | `apache-edge`) (FR-021, Constitution III)
 - [X] T020 [P] [US1] Docs category — require docs for user-facing changes (FR-002, Constitution VI)
 - [X] T021 [US1] Gate-failure messaging — each category reports which gate failed, on what, and what passing requires, without insider interpretation (FR-005)
-- [ ] T022 [US1] Bypass recording — any required-gate bypass is attributable, logged, and justified; silent bypass impossible (FR-006, SC-001)
+- [X] T022 [US1] Bypass recording — any required-gate bypass is attributable, logged, and justified; silent bypass impossible (FR-006, SC-001)
 - [ ] T023 [US1] `speckit` self-adoption caller `.github/workflows/ci.yml` using the `docs-only` adapter — dogfoods the gate so the spec repo is not exempt (Edge Cases)
 - [ ] T024 [US1] Author `docs/cicd/onboarding.md` — adopt the standard gates + branch protection in a new repo (FR-019, SC-005, Constitution VI)
 
