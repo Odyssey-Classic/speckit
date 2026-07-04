@@ -127,11 +127,19 @@ action *can* do at runtime:
 
 1. **Fails closed on untrusted fork-PR contexts.** Given
    `secrets-present: true`, it inspects the run's own `github.event_name`
-   and (for `pull_request`) `github.event.pull_request.head.repo.fork`,
-   and exits non-zero with a clear `::error::` before any later step runs
-   if the context is `pull_request_target`, or `pull_request` from a fork.
-   A job with `secrets-present: false` (the default) is never blocked —
-   this only guards jobs that actually declare they hold secrets.
+   and (for `pull_request`) compares
+   `github.event.pull_request.head.repo.full_name` against
+   `github.repository`, exiting non-zero with a clear `::error::` before any
+   later step runs if the context is `pull_request_target` (always), or a
+   `pull_request` whose head repo differs from this repository. Comparing
+   full names — rather than trusting the boolean `head.repo.fork` — makes the
+   check fail **closed** when the head repo cannot be determined (e.g. a
+   deleted source fork leaves the field empty): an empty value is not equal
+   to this repository, so it is blocked. Any `secrets-present` value other
+   than `true`/`false` is itself a hard error, so a typo can never silently
+   disable the guard. A job with `secrets-present: false` (the default) is
+   never blocked — this only guards jobs that actually declare they hold
+   secrets.
 2. **Masks caller-declared sensitive values.** Given a newline-separated
    `sensitive-values` input, it emits `::add-mask::<value>` for each
    non-blank line, so a value computed mid-job (not already a registered
@@ -164,20 +172,20 @@ from §1.1.
 
 ### Why context values are passed through `env:`, never interpolated into `run:`
 
-The action reads `github.event_name` and
-`github.event.pull_request.head.repo.fork` via step `env:` (`EVENT_NAME`,
-`HEAD_IS_FORK`) and references them as shell variables, rather than
-interpolating `${{ github.event.pull_request.head.repo.fork }}` directly
-into the `run:` script text. This is the standard GitHub Actions
-script-injection mitigation: a `run:` block is expanded by the Actions
-runner *before* the shell ever sees it, so any expression interpolated
-directly into script text is a code-injection vector once an attacker
-influences that context value. Both values used here are trustworthy in
-practice (`event_name` and `head.repo.fork` are platform-set, not
-attacker-editable PR text like a title or body), but routing them through
-`env:` costs nothing and keeps the pattern uniform with how the *next*
-composite action in this repo (`run-gate`, `compose-release-notes`, …)
-must handle any value that touches PR-authored content.
+The action reads `github.event_name`,
+`github.event.pull_request.head.repo.full_name`, and `github.repository` via
+step `env:` (`EVENT_NAME`, `HEAD_FULL_NAME`, `THIS_REPO`) and references them
+as shell variables, rather than interpolating
+`${{ github.event.pull_request.head.repo.full_name }}` directly into the
+`run:` script text. This is the standard GitHub Actions script-injection
+mitigation: a `run:` block is expanded by the Actions runner *before* the
+shell ever sees it, so any expression interpolated directly into script text
+is a code-injection vector once an attacker influences that context value.
+The values used here are platform-set (not attacker-editable PR text like a
+title or body), but routing them through `env:` costs nothing and keeps the
+pattern uniform with how the *next* composite action in this repo
+(`run-gate`, `compose-release-notes`, …) must handle any value that touches
+PR-authored content.
 
 ## 3. What this baseline does not cover (out of scope for T011)
 

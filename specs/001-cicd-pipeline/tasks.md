@@ -44,7 +44,7 @@ description: "Task list for CI/CD Pipeline, Versioning & Release Process"
 - [X] T008 [P] Author `adapters/go/adapter.yml` — `go test`, lint/format, `govulncheck`, docs check, reproducible build, and `ldflags` version embedding (FR-003)
 - [X] T009 [P] Author `adapters/node/adapter.yml` — Node/web-client equivalents for each command hook (FR-003)
 - [X] T010 [P] Author `adapters/docs-only/adapter.yml` — the `speckit` governance profile: document validity + constitution-compliance checks, no code tests (spec Edge Cases & Assumptions: the spec repo is governed, not exempt)
-- [ ] T011 Establish the secure-by-default workflow baseline (least-privilege `permissions:` defaults, secret masking, no secrets exposed to untrusted fork-PR contexts, auditable secret/signing-key access) as a documented convention + reusable snippet under `.github/actions/` (FR-020, SC-008, Constitution VIII) — every workflow authored later inherits this
+- [X] T011 Establish the secure-by-default workflow baseline (least-privilege `permissions:` defaults, secret masking, no secrets exposed to untrusted fork-PR contexts, auditable secret/signing-key access) as a documented convention + reusable snippet under `.github/actions/` (FR-020, SC-008, Constitution VIII) — every workflow authored later inherits this
 
 **Checkpoint**: Central policy, adapters, and the secure baseline exist — user stories can begin.
 
