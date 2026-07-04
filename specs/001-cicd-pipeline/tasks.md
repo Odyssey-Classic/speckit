@@ -60,10 +60,10 @@ description: "Task list for CI/CD Pipeline, Versioning & Release Process"
 
 > Write these FIRST and ensure they FAIL before implementation.
 
-- [ ] T012 [P] [US1] Create gate fixtures under `tests/fixtures/` — `failing-test/`, `known-vuln-dep/`, `preexisting-vuln-only/`, `clean-change/` (US1.1, US1.2, Edge Cases)
+- [X] T012 [P] [US1] Create gate fixtures under `tests/fixtures/` — `failing-test/`, `known-vuln-dep/`, `preexisting-vuln-only/`, `clean-change/` (US1.1, US1.2, Edge Cases)
 - [X] T013 [P] [US1] bats unit test `tests/unit/test_run_gate.bats` — `run-gate` normalizes an adapter command's exit/output into a definitive pass/fail check result (FR-005, SC-003)
 - [X] T014 [P] [US1] bats unit test `tests/unit/test_security_baseline.bats` — newly-introduced ≥high vuln blocks; pre-existing vuln is surfaced not blocked (FR-004, research D12)
-- [ ] T015 [US1] e2e harness job `tests/e2e/gate-e2e.yml` — runs `gate.yml` against the four fixtures, repeats across a Go and a non-Go adapter (US1.4), and exercises an outside-collaborator/fork PR getting identical gating (US1.5)
+- [X] T015 [US1] e2e harness job `tests/e2e/gate-e2e.yml` — runs `gate.yml` against the four fixtures, repeats across a Go and a non-Go adapter (US1.4), and exercises an outside-collaborator/fork PR getting identical gating (US1.5)
 
 ### Implementation for User Story 1
 
@@ -74,8 +74,8 @@ description: "Task list for CI/CD Pipeline, Versioning & Release Process"
 - [X] T020 [P] [US1] Docs category — require docs for user-facing changes (FR-002, Constitution VI)
 - [X] T021 [US1] Gate-failure messaging — each category reports which gate failed, on what, and what passing requires, without insider interpretation (FR-005)
 - [X] T022 [US1] Bypass recording — any required-gate bypass is attributable, logged, and justified; silent bypass impossible (FR-006, SC-001)
-- [ ] T023 [US1] `speckit` self-adoption caller `.github/workflows/ci.yml` using the `docs-only` adapter — dogfoods the gate so the spec repo is not exempt (Edge Cases)
-- [ ] T024 [US1] Author `docs/cicd/onboarding.md` — adopt the standard gates + branch protection in a new repo (FR-019, SC-005, Constitution VI)
+- [X] T023 [US1] `speckit` self-adoption caller `.github/workflows/ci.yml` using the `docs-only` adapter — dogfoods the gate so the spec repo is not exempt (Edge Cases)
+- [X] T024 [US1] Author `docs/cicd/onboarding.md` — adopt the standard gates + branch protection in a new repo (FR-019, SC-005, Constitution VI)
 
 **Checkpoint**: A repo can adopt the full gate set by configuration alone, and bad PRs are blocked with clear reasons. **MVP deliverable.**
 
