@@ -266,3 +266,44 @@ EOF
   [[ "$output" == *"D12 baseline diff NOT active"* ]]
   [[ "$output" == *"verdict=pass"* ]]
 }
+
+# --- multi-command hooks must fail CLOSED, not open (FR-004 regression) -----
+#
+# adapters/go/adapter.yml's `security` hook (govulncheck then gitleaks) and
+# `lint` hook (gofmt then go vet) are multi-line `run:` bodies chained by a
+# plain newline, no `&&`/`set -e` (adapters/_template/adapter.yml's HOOK
+# SHAPE only requires exit 0 = pass; it never requires callers to chain with
+# `&&` themselves). Before run-gate.sh ran a hook body under `set -eo
+# pipefail`, `bash -c "${run_cmd}"` only surfaced the LAST command's exit
+# code — so a failing FIRST command (e.g. govulncheck finding a vuln) was
+# silently masked by a passing last command (gitleaks), defeating FR-004.
+# This stub reproduces that exact shape with two trivial commands so the
+# regression is provable without depending on govulncheck/gitleaks/go/npm
+# being installed.
+
+@test "a multi-command hook whose FIRST command fails must yield verdict=fail, even though its LAST command succeeds (FR-004 fail-open regression)" {
+  cat > "${BATS_TEST_TMPDIR}/adapter-multiline-fail-open.yml" <<'EOF'
+adapter:
+  id: stub-multiline-fail-open
+  ecosystem: stub
+hooks:
+  test:
+    description: "Two-line hook: first command fails, last command succeeds."
+    run: |
+      false
+      echo "recovered - must NOT mask the earlier failure"
+  lint:
+    description: "unused by this test"
+    run: "exit 0"
+  security:
+    description: "unused by this test"
+    run: "exit 0"
+  docs:
+    description: "unused by this test"
+    run: "exit 0"
+EOF
+  run "$RUN_GATE" --adapter "${BATS_TEST_TMPDIR}/adapter-multiline-fail-open.yml" --category tests --policy "$POLICY"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"category=tests"* ]]
+  [[ "$output" == *"verdict=fail"* ]]
+}

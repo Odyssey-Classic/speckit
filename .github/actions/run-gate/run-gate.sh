@@ -232,8 +232,23 @@ fi
 # Step 3: execute the hook, capturing exit code + combined output. set +e
 # around the call so `set -e` above doesn't abort before we get to inspect
 # the exit code ourselves.
+#
+# The hook body itself is run under `set -eo pipefail` (prepended ahead of
+# ${run_cmd}, never `set -u` — adapter bodies may legitimately reference
+# optional env like the security threshold vars above without defaulting
+# them). Multi-line adapter hooks (adapters/go/adapter.yml's `security`:
+# govulncheck then gitleaks; `lint`: gofmt then go vet) chain commands with
+# a plain newline, no `&&`. Without `set -e` inside the hook's own subshell,
+# `bash -c` only surfaces the LAST command's exit code, so an earlier
+# command failing (e.g. govulncheck finding a vulnerability) was silently
+# masked by a later, unrelated command passing (e.g. gitleaks) — a fail-OPEN
+# bug that defeated FR-004 (tests/unit/test_run_gate.bats "FR-004 fail-open
+# regression"). `pipefail` is included so a hook that pipes into another
+# command (e.g. `foo | tee log`) is held to the same standard. This changes
+# nothing for a single-command hook, nor for any hook whose commands already
+# all pass.
 set +e
-hook_output=$(bash -c "${run_cmd}" 2>&1)
+hook_output=$(bash -c "set -eo pipefail"$'\n'"${run_cmd}" 2>&1)
 hook_exit=$?
 set -e
 

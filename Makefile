@@ -19,12 +19,21 @@ SHELL_LINT_DIRS := .github adapters policy scripts tests/unit tests/fixtures tes
 lint: lint-actions lint-composite-actions lint-shell
 
 lint-actions:
-	@echo "==> actionlint (.github/workflows)"
-	@if find .github/workflows -type f \( -name '*.yml' -o -name '*.yaml' \) 2>/dev/null | grep -q .; then \
-		actionlint -config-file .github/actionlint.yaml; \
+	@echo "==> actionlint (.github/workflows, tests/e2e)"
+	@files=$$(find .github/workflows tests/e2e -type f \( -name '*.yml' -o -name '*.yaml' \) 2>/dev/null); \
+	if [ -n "$$files" ]; then \
+		actionlint -config-file .github/actionlint.yaml $$files; \
 	else \
 		echo "no workflow YAML yet — skipping actionlint"; \
 	fi
+# tests/e2e/*.yml (e.g. gate-e2e.yml, T015) are real GitHub Actions workflow
+# files in their own right (triggered by `on: pull_request`/`workflow_dispatch`,
+# same as anything under .github/workflows) — they must be held to the same
+# actionlint bar, not just eyeballed. Passing explicit file paths (rather than
+# actionlint's own no-args auto-discovery of the nearest .github/workflows/)
+# is what brings tests/e2e into scope; .github/workflows/*.yml is listed
+# explicitly alongside it so switching to explicit-file mode doesn't drop
+# that existing coverage.
 # NOTE: actionlint only validates a composite action's *metadata*
 # (inputs/outputs/branding/runner name), and only once some workflow
 # references it via `uses:` — it does not parse a standalone action.yml at
