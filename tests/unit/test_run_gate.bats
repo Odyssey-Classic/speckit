@@ -72,6 +72,42 @@ setup() {
   [[ "$output" == *"requires"* ]]
 }
 
+# --- GITHUB_OUTPUT `message` output (T016 review fix) ------------------------
+#
+# gate.yml (T016) previously re-invoked this exact script a second time on
+# the failure path, only to capture its RUN_GATE_MESSAGE: text for the step
+# summary — a double-run of the hook that risked describing a DIFFERENT
+# failure than the one that actually blocked, for any non-deterministic
+# hook. Instead, run-gate.sh now exposes that same text as a `message`
+# GITHUB_OUTPUT (heredoc-delimited, multi-line), alongside the pre-existing
+# `verdict`/`category` outputs, so a caller reads it without a second
+# invocation. Stdout behavior (asserted above) is unchanged.
+
+@test "a failing hook writes verdict, category, and a multi-line message output to GITHUB_OUTPUT" {
+  output_file="${BATS_TEST_TMPDIR}/github_output_fail"
+  : > "${output_file}"
+  GITHUB_OUTPUT="${output_file}" run "$RUN_GATE" --adapter "$ADAPTER" --category quality --policy "$POLICY"
+  [ "$status" -ne 0 ]
+  run cat "${output_file}"
+  [[ "$output" == *"category=quality"* ]]
+  [[ "$output" == *"verdict=fail"* ]]
+  [[ "$output" == *"message<<"* ]]
+  [[ "$output" == *"RUN_GATE_MESSAGE:"* ]]
+  [[ "$output" == *"formatting violation in fixtures/foo.stub"* ]]
+  [[ "$output" == *"to pass"* ]]
+}
+
+@test "a passing hook writes verdict/category to GITHUB_OUTPUT but no message output" {
+  output_file="${BATS_TEST_TMPDIR}/github_output_pass"
+  : > "${output_file}"
+  GITHUB_OUTPUT="${output_file}" run "$RUN_GATE" --adapter "$ADAPTER" --category tests --policy "$POLICY"
+  [ "$status" -eq 0 ]
+  run cat "${output_file}"
+  [[ "$output" == *"category=tests"* ]]
+  [[ "$output" == *"verdict=pass"* ]]
+  [[ "$output" != *"message<<"* ]]
+}
+
 # --- unknown category / missing hook -----------------------------------------
 
 @test "an unknown category is a clear non-zero error" {

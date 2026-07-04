@@ -56,6 +56,14 @@ outputs:
   category:
     description: "The category evaluated (echoes the `category` input)."
     value: ${{ steps.run-gate.outputs.category }}
+  message:
+    description: >-
+      On failure only: the same RUN_GATE_MESSAGE: text run-gate.sh prints
+      to stdout (FR-005 — which gate failed, on what, and what passing
+      requires), exposed as a step output so a caller (gate.yml) can read
+      it without re-invoking the hook a second time. Empty when verdict is
+      pass.
+    value: ${{ steps.run-gate.outputs.message }}
 
 runs:
   using: composite

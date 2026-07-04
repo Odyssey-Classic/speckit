@@ -48,6 +48,17 @@
 # `actionlint`/`shellcheck`/`yq '.'` — is what backs this file today; actual
 # execution against the gate fixtures (tests/fixtures/run-gate/,
 # tests/fixtures/) is tests/e2e/gate-e2e.yml (T015), still open.
+#
+# NOT YET WIRED HERE: D12's newly-introduced-vs-pre-existing security
+# baseline diff (research.md D12, policy/gate-policy.yml's
+# threshold.preexisting: surface, security-baseline.sh, T018) needs a
+# checkout/scan of the PR's TARGET branch to produce a baseline findings
+# file to diff against — CI wiring only a real workflow run can do (T050),
+# not yet implemented in this `security` matrix leg. Until that lands,
+# run-gate.sh honestly falls back to the security hook's raw exit code as
+# the entire verdict (see run-gate.sh's own "SEAM FOR T018" comment) —
+# newly-introduced vs. pre-existing is NOT being distinguished by this
+# workflow today.
 
 name: Gate
 
@@ -123,27 +134,16 @@ jobs:
           ADAPTER_PATH: ${{ steps.adapter-path.outputs.path }}
         run: |
           set -euo pipefail
-          # An adapter may declare hook shape keys only (adapter.id,
-          # adapter.ecosystem, hooks.<name>.description, hooks.<name>.run —
-          # see adapters/_template/adapter.yml). Any of these keys, at any
-          # depth, means the adapter is trying to supply a WHETHER
-          # (policy's job), not just a HOW (the adapter's job).
-          disallowed="threshold thresholds exemption exemptions bypass policy override overrides"
-          found_keys=$(yq '[.. | select(tag == "!!map") | keys | .[]] | unique | .[]' "${ADAPTER_PATH}")
-          bad=""
-          while IFS= read -r key; do
-            [ -z "${key}" ] && continue
-            for d in ${disallowed}; do
-              if [ "${key}" = "${d}" ]; then
-                bad="${bad}${key} "
-              fi
-            done
-          done <<<"${found_keys}"
-          if [ -n "${bad}" ]; then
-            echo "::error::gate: adapter '${ADAPTER_PATH}' declares disallowed key(s): ${bad}— an adapter supplies only HOW to satisfy a gate category, never WHETHER (FR-003, Constitution Principle V). Thresholds, exemptions, and bypass rules live solely in policy/gate-policy.yml. Remove ${bad}from the adapter; propose any policy change centrally instead."
-            exit 1
-          fi
-          echo "gate: adapter '${ADAPTER_PATH}' contains no policy-override keys — OK."
+          # Logic lives in scripts/check-adapter-overrides.sh (T016 review
+          # fix) so it is independently unit-testable with bats
+          # (tests/unit/test_check_adapter_overrides.bats) without a GitHub
+          # Actions runner — same rationale as run-gate.sh living outside
+          # action.yml. It rejects any key, at any depth (including via a
+          # YAML anchor/merge, or nested under a list), whose lowercased
+          # name equals or contains threshold/exemption/bypass/policy/
+          # override — an adapter supplies only HOW to satisfy a gate
+          # category, never WHETHER (Constitution Principle V).
+          scripts/check-adapter-overrides.sh "${ADAPTER_PATH}"
 
       - name: Derive required categories from policy (FR-001)
         id: categories
@@ -176,10 +176,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Full history: the docs category below needs the PR's merge-base
-          # against its target branch to diff changed files, which a
-          # shallow (depth=1) checkout of just the PR head does not have.
-          fetch-depth: 0
+          # Full history only for the docs leg, which diffs the PR's
+          # merge-base against its target branch (git diff base...head) —
+          # a shallow (depth=1), PR-head-only checkout doesn't have that
+          # history. Every other category only runs its adapter hook
+          # against the checked-out tree and has no use for history, so it
+          # stays default-shallow to keep checkout fast for the common
+          # case.
+          fetch-depth: ${{ matrix.category == 'docs' && 0 || 1 }}
 
       - name: Run gate — ${{ matrix.category }}
         id: run_gate
@@ -196,27 +200,29 @@ jobs:
       - name: Report run-gate failure (FR-005)
         if: steps.run_gate.outcome == 'failure'
         env:
-          ADAPTER_PATH: ${{ needs.setup.outputs.adapter_path }}
           CATEGORY: ${{ matrix.category }}
+          RUN_GATE_VERDICT: ${{ steps.run_gate.outputs.verdict }}
+          RUN_GATE_MESSAGE: ${{ steps.run_gate.outputs.message }}
         run: |
           set -euo pipefail
-          # run-gate's own `verdict`/`category` outputs (action.yml) don't
-          # carry its RUN_GATE_MESSAGE: text — a `uses:` composite step's
-          # stdout isn't otherwise capturable by its caller. Re-invoking
-          # the same unmodified script the composite wraps, directly, in
-          # this ordinary run: step lets us capture that text — only paid
-          # on the failure path, never on the passing one.
-          set +e
-          output=$(.github/actions/run-gate/run-gate.sh --adapter "${ADAPTER_PATH}" --category "${CATEGORY}" 2>&1)
-          set -e
+          # run-gate.sh (T016 review fix) now exposes its own
+          # RUN_GATE_MESSAGE: text as a `message` step output (action.yml),
+          # alongside the pre-existing `verdict`/`category` outputs — read
+          # here instead of re-invoking run-gate.sh a second time. A second
+          # invocation would re-run the hook, which for a non-deterministic
+          # hook could describe a DIFFERENT failure than the one that
+          # actually blocked (breaking FR-005's "which gate failed, on
+          # what" guarantee); the hook now runs exactly once per category,
+          # on every path.
+          echo "gate: run-gate outputs for '${CATEGORY}' — verdict=${RUN_GATE_VERDICT:-<unset>}"
           {
             echo "### Gate category \`${CATEGORY}\` failed"
             echo
             echo '```'
-            if printf '%s\n' "${output}" | grep -q '_MESSAGE:'; then
-              printf '%s\n' "${output}" | grep '_MESSAGE:'
+            if [ -n "${RUN_GATE_MESSAGE}" ]; then
+              printf '%s\n' "${RUN_GATE_MESSAGE}"
             else
-              echo "(no *_MESSAGE: lines produced — see this leg's 'Run gate' step log for the raw failure.)"
+              echo "(no message output produced — see this leg's 'Run gate' step log for the raw failure.)"
             fi
             echo '```'
           } >>"${GITHUB_STEP_SUMMARY}"
@@ -248,10 +254,22 @@ jobs:
         if: matrix.category == 'docs'
         id: changed_files
         env:
+          EVENT_NAME: ${{ github.event_name }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
+          # github.event.pull_request.{base,head}.sha only exist on a
+          # 'pull_request' event; on any other trigger they resolve to
+          # empty strings, which would otherwise fail deep inside `git
+          # diff` with an opaque "bad revision ''" instead of naming the
+          # actual problem. Fail loudly here first, matching this file's
+          # own ::error:: convention (e.g. the 'setup' job's adapter/
+          # policy_overrides checks).
+          if [ "${EVENT_NAME}" != "pull_request" ]; then
+            echo "::error::gate: docs category's changed-files diff requires a 'pull_request' event to supply github.event.pull_request.{base,head}.sha — this run was triggered by '${EVENT_NAME}'. The caller workflow must invoke this reusable workflow from an 'on: pull_request' trigger (reusable-workflow-interface.md)."
+            exit 1
+          fi
           changed_files_path="${RUNNER_TEMP}/gate-changed-files.txt"
           git diff --name-only "${BASE_SHA}...${HEAD_SHA}" >"${changed_files_path}"
           echo "path=${changed_files_path}" >>"${GITHUB_OUTPUT}"

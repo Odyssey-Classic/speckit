@@ -19,6 +19,12 @@
 #      parseable `RUN_GATE_RESULT ...` line (category, hook, verdict,
 #      exit_code) and, on failure, a `RUN_GATE_MESSAGE:` block stating
 #      which category failed, on what, and what passing requires (FR-005).
+#      When $GITHUB_OUTPUT is set, also writes `category`/`verdict` (both
+#      paths) and, on failure only, a heredoc-delimited multi-line
+#      `message` output carrying that same RUN_GATE_MESSAGE: text (T016
+#      review fix) — so a caller (gate.yml, via action.yml's `message`
+#      output) never needs to re-invoke this script a second time just to
+#      recover it. Stdout output/formatting is unaffected either way.
 #
 # Usage:
 #   run-gate.sh --adapter <path/to/adapter.yml> \
@@ -281,14 +287,33 @@ if [ "${hook_exit}" -eq 0 ]; then
 else
   echo "RUN_GATE_RESULT category=${category} hook=${hook_name} verdict=fail exit_code=${hook_exit}"
   echo "::error::run-gate: category '${category}' failed."
-  echo "RUN_GATE_MESSAGE: category '${category}' failed, running hook '${hook_name}' (${description})."
-  echo "RUN_GATE_MESSAGE: command exited ${hook_exit}. Output:"
-  printf '%s\n' "${hook_output}" | sed 's/^/RUN_GATE_MESSAGE:   /'
-  echo "RUN_GATE_MESSAGE: to pass '${category}', the '${hook_name}' hook requires: ${description} (must exit 0)."
+  # Built once into a variable (rather than four bare echo/printf calls
+  # writing straight to stdout) so the exact same text can also be
+  # emitted as the `message` GITHUB_OUTPUT below (T016 review fix) —
+  # gate.yml previously re-invoked this whole script a second time on the
+  # failure path purely to recover this text, which risked describing a
+  # DIFFERENT failure than the one that actually blocked for any
+  # non-deterministic hook. Stdout content/formatting is unchanged.
+  message=$(
+    echo "RUN_GATE_MESSAGE: category '${category}' failed, running hook '${hook_name}' (${description})."
+    echo "RUN_GATE_MESSAGE: command exited ${hook_exit}. Output:"
+    printf '%s\n' "${hook_output}" | sed 's/^/RUN_GATE_MESSAGE:   /'
+    echo "RUN_GATE_MESSAGE: to pass '${category}', the '${hook_name}' hook requires: ${description} (must exit 0)."
+  )
+  printf '%s\n' "${message}"
   if [ -n "${GITHUB_OUTPUT:-}" ]; then
     {
       echo "category=${category}"
       echo "verdict=fail"
+    } >>"${GITHUB_OUTPUT}"
+    # Multi-line GITHUB_OUTPUT values require the heredoc form
+    # (`name<<DELIM` ... `DELIM`); the delimiter is randomized per-run so
+    # it can't collide with anything a hook's own output might contain.
+    message_delimiter="RUN_GATE_MESSAGE_EOF_${RANDOM}${RANDOM}"
+    {
+      echo "message<<${message_delimiter}"
+      printf '%s\n' "${message}"
+      echo "${message_delimiter}"
     } >>"${GITHUB_OUTPUT}"
   fi
   exit "${EXIT_FAIL}"
