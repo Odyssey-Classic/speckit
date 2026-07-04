@@ -48,6 +48,13 @@ readonly EXIT_CONFIG=3
 
 readonly DEFAULT_POLICY_FILE="policy/gate-policy.yml"
 
+# Resolved so the D12 baseline-diff call below (security category only)
+# can find security-baseline.sh (T018) sitting alongside this script,
+# regardless of the caller's current working directory or how this script
+# was invoked (absolute path from action.yml, relative path from bats).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+
 usage() {
   cat >&2 <<'USAGE'
 Usage: run-gate.sh --adapter <path> --category <tests|quality|security|docs> [--policy <path>]
@@ -160,18 +167,32 @@ description=$(yq -e ".hooks.${hook_name}.description" "${adapter_file}" 2>/dev/n
 #
 # >>> SEAM FOR T018 (newly-introduced vs. pre-existing baseline diff,
 #     research.md D12, policy threshold.preexisting: surface) <<<
-# T018 will insert baseline-diff filtering HERE — after the hook produces
-# its findings, before the verdict below is computed from hook_exit — so
-# that only findings NEWLY INTRODUCED vs. the target-branch baseline, at or
-# above RUN_GATE_MIN_SEVERITY_BLOCK, cause a fail verdict, while
-# pre-existing findings are surfaced (reported) without blocking, per
-# `preexisting: surface`. That diff is NOT implemented in this script —
-# T018 is a separate, later task. Until it lands, the hook's own exit code
-# is the entire verdict for the security category, same as every other
-# category: a known, temporary gap relative to `preexisting: surface`, not
-# an intended final behavior. Nothing below should be read as asserting
-# that pre-existing findings block merges; it simply has not yet been
-# taught the difference.
+# STATUS: the classification itself is DONE — security-baseline.sh (T018)
+# is a standalone, independently unit-tested (test_security_baseline.bats)
+# script that, given a current-findings file and a baseline-findings file
+# (both in its documented "<severity>\t<fingerprint>" format), blocks iff a
+# NEWLY INTRODUCED finding is at/above RUN_GATE_MIN_SEVERITY_BLOCK and
+# surfaces (never blocks on its own) everything pre-existing or below
+# threshold — exactly `preexisting: surface`.
+#
+# What is STILL NOT CI-wired: producing that baseline requires scanning
+# the TARGET branch (e.g. main) — a checkout/fetch-of-the-base-ref step
+# that only a real CI job can do (gate.yml, T050), not this standalone
+# script. So this script does not scan anything itself; it only looks for
+# two env vars a CI-integration step would set once T050 lands:
+#
+#   RUN_GATE_SECURITY_CURRENT_FINDINGS_FILE   current branch/PR findings
+#   RUN_GATE_SECURITY_BASELINE_FINDINGS_FILE  target-branch baseline findings
+#
+# When BOTH are set and point at existing files, the D12 diff below is
+# genuinely active: the security verdict comes from security-baseline.sh,
+# not from the hook's raw exit code. When they are absent (true today,
+# until T050's CI wiring lands), this script HONESTLY falls back to the
+# hook's own exit code as the entire verdict — the pre-T018 behavior,
+# logged clearly below so nobody mistakes the fallback for D12 diffing
+# being active. Nothing here should be read as claiming pre-existing/new
+# discrimination is happening when the two findings files were never
+# supplied.
 # -----------------------------------------------------------------------
 if [ "${category}" = "security" ]; then
   if ! min_severity_block=$(yq -e '.categories[] | select(.name == "security") | .threshold.min_severity_block' "${policy_file}" 2>/dev/null); then
@@ -194,6 +215,40 @@ set +e
 hook_output=$(bash -c "${run_cmd}" 2>&1)
 hook_exit=$?
 set -e
+
+# Step 3.5: security category ONLY — D12 baseline diff (T018). See the SEAM
+# comment above for what this does and does not do. This block only
+# decides WHETHER security-baseline.sh's classification is invoked; the
+# classification logic itself lives entirely in that script (independently
+# unit-tested by tests/unit/test_security_baseline.bats).
+if [ "${category}" = "security" ]; then
+  current_findings_file="${RUN_GATE_SECURITY_CURRENT_FINDINGS_FILE:-}"
+  baseline_findings_file="${RUN_GATE_SECURITY_BASELINE_FINDINGS_FILE:-}"
+  if [ -n "${current_findings_file}" ] && [ -n "${baseline_findings_file}" ] \
+    && [ -f "${current_findings_file}" ] && [ -f "${baseline_findings_file}" ]; then
+    echo "run-gate: D12 baseline diff ACTIVE for security category (current='${current_findings_file}', baseline='${baseline_findings_file}') — security-baseline.sh's verdict, not the hook's raw exit code, decides pass/fail." >&2
+    # The classifier's "preexisting: surface" behavior is not itself
+    # configurable — it is the only mode research.md D12 defines, and the
+    # only value the policy schema currently declares. Flag (not fail) if
+    # a future policy ever says otherwise, so a schema change doesn't
+    # silently stop matching this script's fixed behavior.
+    if [ "${preexisting_mode}" != "surface" ]; then
+      echo "::warning::run-gate: policy threshold.preexisting='${preexisting_mode}' but security-baseline.sh only implements 'surface' semantics — pre-existing findings will still be surfaced-not-blocked regardless." >&2
+    fi
+    set +e
+    baseline_output=$("${SCRIPT_DIR}/security-baseline.sh" \
+      --current "${current_findings_file}" \
+      --baseline "${baseline_findings_file}" \
+      --min-severity "${min_severity_block}" 2>&1)
+    baseline_exit=$?
+    set -e
+    hook_output="${hook_output}
+${baseline_output}"
+    hook_exit="${baseline_exit}"
+  else
+    echo "run-gate: D12 baseline diff NOT active for security category (RUN_GATE_SECURITY_CURRENT_FINDINGS_FILE / RUN_GATE_SECURITY_BASELINE_FINDINGS_FILE not both set to existing files) — falling back to the hook's raw exit code as the entire verdict. Newly-introduced vs. pre-existing is NOT being distinguished in this run. See SEAM FOR T018 comment above." >&2
+  fi
+fi
 
 # Step 4: normalize into a single verdict.
 if [ "${hook_exit}" -eq 0 ]; then

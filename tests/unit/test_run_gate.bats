@@ -165,3 +165,43 @@ EOF
   [ "$status" -ne 0 ]
   [[ "$output" == *"verdict=fail"* ]]
 }
+
+# --- D12 baseline diff wiring (T018) -----------------------------------------
+#
+# security-baseline.sh (T014/T018) is unit-tested on its own in
+# tests/unit/test_security_baseline.bats. These three tests instead prove
+# the SEAM in run-gate.sh actually calls it and honors its verdict when a
+# CI-integration step has provided the two findings files, and that
+# run-gate honestly falls back to the raw hook exit code — with a clear
+# log saying so — when it has not (fixtures shared with
+# test_security_baseline.bats: tests/fixtures/security-baseline/).
+
+@test "security category blocks via D12 baseline diff on a newly-introduced high finding, even though the underlying hook itself passes" {
+  SECURITY_BASELINE_FIXTURES="${REPO_ROOT}/tests/fixtures/security-baseline"
+  RUN_GATE_SECURITY_CURRENT_FINDINGS_FILE="${SECURITY_BASELINE_FIXTURES}/current-new-high.findings" \
+    RUN_GATE_SECURITY_BASELINE_FINDINGS_FILE="${SECURITY_BASELINE_FIXTURES}/baseline-unrelated.findings" \
+    run "$RUN_GATE" --adapter "$ADAPTER" --category security --policy "$POLICY"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"D12 baseline diff ACTIVE"* ]]
+  [[ "$output" == *"stub security hook: ok"* ]] # the underlying hook itself passed...
+  [[ "$output" == *"SECURITY_BASELINE_RESULT verdict=block"* ]]
+  [[ "$output" == *"verdict=fail"* ]] # ...but run-gate's final verdict blocks (D12 override)
+}
+
+@test "security category passes via D12 baseline diff when the only newly-introduced finding is below threshold" {
+  SECURITY_BASELINE_FIXTURES="${REPO_ROOT}/tests/fixtures/security-baseline"
+  RUN_GATE_SECURITY_CURRENT_FINDINGS_FILE="${SECURITY_BASELINE_FIXTURES}/current-new-low.findings" \
+    RUN_GATE_SECURITY_BASELINE_FINDINGS_FILE="${SECURITY_BASELINE_FIXTURES}/baseline-unrelated.findings" \
+    run "$RUN_GATE" --adapter "$ADAPTER" --category security --policy "$POLICY"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"D12 baseline diff ACTIVE"* ]]
+  [[ "$output" == *"SECURITY_BASELINE_RESULT verdict=pass"* ]]
+  [[ "$output" == *"verdict=pass"* ]]
+}
+
+@test "security category falls back to the raw hook exit code, with a clear log, when D12 findings files are not provided" {
+  run "$RUN_GATE" --adapter "$ADAPTER" --category security --policy "$POLICY"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"D12 baseline diff NOT active"* ]]
+  [[ "$output" == *"verdict=pass"* ]]
+}
