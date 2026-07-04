@@ -62,24 +62,30 @@ runs:
       shell: bash
       env:
         EVENT_NAME: ${{ github.event_name }}
-        HEAD_IS_FORK: ${{ github.event.pull_request.head.repo.fork }}
+        HEAD_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
+        THIS_REPO: ${{ github.repository }}
         SECRETS_PRESENT: ${{ inputs.secrets-present }}
       run: |
         set -euo pipefail
 
-        if [ "${SECRETS_PRESENT}" != "true" ]; then
+        if [ "${SECRETS_PRESENT}" = "true" ]; then
+          : # guard is active — fall through to the event-based checks below
+        elif [ "${SECRETS_PRESENT}" = "false" ] || [ -z "${SECRETS_PRESENT}" ]; then
           echo "harden: secrets-present=false — nothing to guard, continuing."
           exit 0
+        else
+          echo "::error::harden: invalid secrets-present value '${SECRETS_PRESENT}' — must be exactly \"true\" or \"false\" (case-sensitive). Refusing to silently disable guarding on an unrecognized value."
+          exit 1
         fi
 
         case "${EVENT_NAME}" in
           pull_request_target)
-            echo "::error::harden: refusing to run — pull_request_target exposes base-repo secrets to a job that can check out untrusted PR content. Never combine this trigger with secrets-present: true." >&2
+            echo "::error::harden: refusing to run — pull_request_target exposes base-repo secrets to a job that can check out untrusted PR content. Never combine this trigger with secrets-present: true."
             exit 1
             ;;
           pull_request)
-            if [ "${HEAD_IS_FORK}" = "true" ]; then
-              echo "::error::harden: refusing to run — this is a pull_request from a fork and secrets-present: true. Untrusted fork pull requests must never reach a secret-bearing step." >&2
+            if [ "${HEAD_FULL_NAME}" != "${THIS_REPO}" ]; then
+              echo "::error::harden: refusing to run — this pull_request's head repo ('${HEAD_FULL_NAME}') does not match this repository ('${THIS_REPO}') and secrets-present: true. Fork pull requests, and any pull request whose head repo cannot be determined (e.g. a deleted source fork), must never reach a secret-bearing step."
               exit 1
             fi
             ;;
