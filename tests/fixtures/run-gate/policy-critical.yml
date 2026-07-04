@@ -1,0 +1,29 @@
+# tests/fixtures/run-gate/policy-critical.yml
+#
+# Same shape as policy.yml, except security.threshold.min_severity_block is
+# "critical" instead of "high". Used by tests/unit/test_run_gate.bats to
+# prove run-gate.sh sources the severity threshold from whichever policy
+# file it is given at runtime, rather than from a value baked into the
+# adapter or the script (carried review note).
+
+policy_version: "0.0.0-test"
+
+categories:
+  - name: tests
+    required: true
+    threshold: { must_pass: all }
+
+  - name: quality
+    required: true
+    threshold: { must_pass: all, require_license_side: true }
+
+  - name: security
+    required: true
+    threshold:
+      min_severity_block: critical
+      preexisting: surface
+      include: [dependencies, secrets, sast]
+
+  - name: docs
+    required: true
+    threshold: { require_docs_for_user_facing_change: true }

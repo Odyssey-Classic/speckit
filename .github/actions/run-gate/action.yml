@@ -1,0 +1,75 @@
+# .github/actions/run-gate/action.yml
+#
+# T017 — the `run-gate` composite action. gate.yml (T016, reusable-workflow-
+# interface.md) invokes this action once per required category from
+# policy/gate-policy.yml, for the adapter the caller repo named in its
+# `adapter:` input (reusable-workflow-interface.md's `gate.yml`). It resolves
+# the category to an adapter hook, runs that hook's command, and normalizes
+# the result into a single pass/fail verdict (FR-005).
+#
+# WHY THE LOGIC IS A SEPARATE SCRIPT
+#   All decision logic (policy lookup, category->hook mapping, severity
+#   threshold sourcing, verdict normalization) lives in run-gate.sh so it is
+#   unit-testable with bats (tests/unit/test_run_gate.bats, T013) without a
+#   GitHub Actions runner. This action.yml is a thin, injection-safe
+#   wrapper: every input is passed through `env:` and read as a shell
+#   variable inside `run:` — never interpolated as `${{ inputs.* }}`
+#   directly into the script body — matching the pattern established by
+#   .github/actions/harden/action.yml.
+#
+# Reference caller (once T016 lands):
+#   - name: Run gate — tests
+#     uses: ./.github/actions/run-gate
+#     with:
+#       adapter: adapters/${{ inputs.adapter }}/adapter.yml
+#       category: tests
+
+name: "Run Gate"
+description: >-
+  Runs one gate-policy category's check for the given adapter and
+  normalizes the adapter hook's exit code/output into a single pass/fail
+  verdict (FR-005).
+
+inputs:
+  adapter:
+    description: >-
+      Path to the ecosystem adapter file to run the check against (e.g.
+      adapters/go/adapter.yml). See adapters/_template/adapter.yml for the
+      contract.
+    required: true
+  category:
+    description: >-
+      The gate-policy.yml category to evaluate: tests, quality, security,
+      or docs.
+    required: true
+  policy:
+    description: >-
+      Path to gate-policy.yml. Defaults to policy/gate-policy.yml, resolved
+      relative to the job's working directory (normally the repo root).
+    required: false
+    default: "policy/gate-policy.yml"
+
+outputs:
+  verdict:
+    description: "pass or fail, per run-gate.sh's RUN_GATE_RESULT line."
+    value: ${{ steps.run-gate.outputs.verdict }}
+  category:
+    description: "The category evaluated (echoes the `category` input)."
+    value: ${{ steps.run-gate.outputs.category }}
+
+runs:
+  using: composite
+  steps:
+    - name: Run gate category
+      id: run-gate
+      shell: bash
+      env:
+        RUN_GATE_ADAPTER: ${{ inputs.adapter }}
+        RUN_GATE_CATEGORY: ${{ inputs.category }}
+        RUN_GATE_POLICY: ${{ inputs.policy }}
+      run: |
+        set -euo pipefail
+        "${GITHUB_ACTION_PATH}/run-gate.sh" \
+          --adapter "${RUN_GATE_ADAPTER}" \
+          --category "${RUN_GATE_CATEGORY}" \
+          --policy "${RUN_GATE_POLICY}"
