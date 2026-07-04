@@ -8,14 +8,23 @@
 # WHAT THIS FILE IS
 #   The uniform interface the `run-gate` composite action (T017,
 #   .github/actions/run-gate/) and the `derive-version` / `release.yml`
-#   workflows (T028, T035) invoke by name. Given an `adapter:` input (e.g.
-#   `go`, `node`, `docs-only` — see reusable-workflow-interface.md), the
-#   caller looks up `adapters/<adapter>/adapter.yml` and runs the named
-#   hook's `run:` command. Gate categories, thresholds, exemptions, and
-#   bypass rules are decided ONCE, centrally, in `policy/gate-policy.yml`
+#   workflows (T028, T035) invoke by name. The reusable `gate.yml` workflow
+#   (T016, on: workflow_call) is the actual caller: it takes an `adapter:`
+#   input naming an ecosystem id (e.g. `go`, `node`, `docs-only` — see
+#   reusable-workflow-interface.md), resolves that id to THIS file's path
+#   (`adapters/<adapter>/adapter.yml`), and passes that resolved PATH — never
+#   the bare id — as the `run-gate` composite action's own `adapter:` input
+#   (.github/actions/run-gate/action.yml; internally, run-gate.sh takes
+#   `--adapter <path>`, not an id). `run-gate` then maps the gate-policy
+#   category it was given to one of this file's hooks and runs that hook's
+#   `run:` command. Gate categories, thresholds, exemptions, and bypass
+#   rules are decided ONCE, centrally, in `policy/gate-policy.yml`
 #   (contracts/gate-policy.schema.md). This file supplies only the *means*
 #   — the actual command for this ecosystem — never the *whether*
-#   (FR-003, SC-005).
+#   (FR-003, SC-005). `gate.yml` additionally verifies, before running any
+#   category, that this file contains no threshold/exemption/bypass/policy/
+#   override key at any depth — declaring one is a hard gate failure, not a
+#   silently-ignored no-op (FR-003).
 #
 # WHAT THIS FILE MUST NEVER CONTAIN
 #   - Severity thresholds, pass-percentage rules, retry/skip conditions.

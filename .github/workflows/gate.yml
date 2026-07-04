@@ -1,0 +1,280 @@
+# .github/workflows/gate.yml
+#
+# T016 (+ T021 failure messaging) — the reusable merge-gate workflow every
+# consuming repo's caller programs against
+# (specs/001-cicd-pipeline/contracts/reusable-workflow-interface.md's
+# `gate.yml`). It is the FIRST real workflow in this repo: everything a
+# caller repo needs is two inputs (`adapter`, `license_side`) — zero bespoke
+# gate logic on the caller's side (SC-005). One required category from
+# policy/gate-policy.yml -> one GitHub check run (FR-001, SC-003), via a
+# matrix `gate` job whose legs are derived from the policy at runtime by
+# the `setup` job, so a policy change (adding/removing a required category)
+# is picked up by every consumer without editing this file.
+#
+# Secure-by-default baseline (T011, docs/cicd/secure-defaults.md): the
+# top-level `permissions: contents: read` block is the floor; the only
+# broader grant is `checks: write` on the `gate` job (recorded in
+# secure-defaults.md's per-workflow table), narrowly, to emit one check run
+# per category. No job in this workflow ever receives or reads a secret —
+# gate categories are all read-only checks against the PR's own content —
+# so this workflow never calls `.github/actions/harden` (that action's own
+# header is explicit: it exists to guard jobs that declare
+# `secrets-present: true`; a job with no secrets is a no-op for it, so
+# calling it here would be pure overhead) and it runs on plain
+# `pull_request`, never `pull_request_target`. That is also what makes
+# this workflow fork-safe (US1.5): a fork PR is checked out read-only and
+# there is no secret to leak either way, so an outside contributor gets
+# identical gating to a same-repo contributor.
+#
+# FR-003 (an adapter supplies HOW, never WHETHER): the `setup` job resolves
+# `adapters/<adapter>/adapter.yml` and rejects it outright — before any
+# category runs — if it declares any threshold/exemption/bypass/policy/
+# override key. Those decisions live solely, centrally, in
+# policy/gate-policy.yml (Constitution Principle V). The `policy_overrides`
+# input exists for the same reason: it is not a supported knob, only a trap
+# that fails loudly (rather than being silently ignored) if a caller sets
+# it.
+#
+# T021 (FR-005): each category leg surfaces its own check's `*_MESSAGE:`
+# lines — the convention run-gate.sh, scripts/check-license-side.sh, and
+# scripts/check-docs-required.sh all follow — to $GITHUB_STEP_SUMMARY on
+# failure, so a contributor reading a failed PR check sees which category
+# failed, on what, and what passing requires, without having to interpret
+# raw script/exit-code output themselves.
+#
+# What this workflow cannot prove by itself: it has never been executed by
+# a real Actions runner (no `pull_request` event exists to drive it inside
+# this authoring session). Static validation only —
+# `actionlint`/`shellcheck`/`yq '.'` — is what backs this file today; actual
+# execution against the gate fixtures (tests/fixtures/run-gate/,
+# tests/fixtures/) is tests/e2e/gate-e2e.yml (T015), still open.
+
+name: Gate
+
+on:
+  workflow_call:
+    inputs:
+      adapter:
+        description: >-
+          Ecosystem adapter id under adapters/ (e.g. go, node, docs-only).
+          This workflow resolves it to adapters/<adapter>/adapter.yml and
+          passes that resolved PATH to the run-gate composite action.
+        required: true
+        type: string
+      license_side:
+        description: >-
+          Declared license side (Constitution Principle III): agpl-core |
+          apache-edge. Checked centrally by the quality category — never
+          per-adapter.
+        required: true
+        type: string
+      policy_overrides:
+        description: >-
+          Disallowed. Not a real knob — declared only so that a caller
+          which sets it fails loudly instead of the value being silently
+          ignored (reusable-workflow-interface.md: "Disallowed; present
+          only to fail loudly if set.").
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read # secure-by-default floor (T011) — every job below gets at most this
+
+jobs:
+  # Resolves the caller's `adapter` id to a path, rejects any policy
+  # override the adapter file may declare (FR-003), and derives the
+  # required-category list this run must gate on directly from
+  # policy/gate-policy.yml (FR-001) — once, so every matrix leg in the
+  # `gate` job below evaluates the same resolved inputs.
+  setup:
+    name: Resolve gate inputs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      categories: ${{ steps.categories.outputs.categories }}
+      adapter_path: ${{ steps.adapter-path.outputs.path }}
+    steps:
+      - name: Reject disallowed policy_overrides input (FR-003)
+        if: inputs.policy_overrides != ''
+        run: |
+          echo "::error::gate: 'policy_overrides' is not a supported input. Gate categories, thresholds, exemptions, and bypass rules are decided once, centrally, in policy/gate-policy.yml (Constitution Principle V; FR-003) — a caller supplies only 'adapter' and 'license_side' (reusable-workflow-interface.md); zero bespoke gate logic is permitted (SC-005). Remove 'policy_overrides' from your caller workflow and propose any policy change centrally instead."
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve adapter path
+        id: adapter-path
+        env:
+          GATE_ADAPTER: ${{ inputs.adapter }}
+        run: |
+          set -euo pipefail
+          adapter_path="adapters/${GATE_ADAPTER}/adapter.yml"
+          if [ ! -f "${adapter_path}" ]; then
+            echo "::error::gate: adapter '${GATE_ADAPTER}' not found — expected '${adapter_path}' (reusable-workflow-interface.md's 'adapter' input names an id under adapters/, e.g. go, node, docs-only)."
+            exit 1
+          fi
+          echo "path=${adapter_path}" >>"${GITHUB_OUTPUT}"
+
+      - name: Reject adapter policy overrides (FR-003)
+        env:
+          ADAPTER_PATH: ${{ steps.adapter-path.outputs.path }}
+        run: |
+          set -euo pipefail
+          # An adapter may declare hook shape keys only (adapter.id,
+          # adapter.ecosystem, hooks.<name>.description, hooks.<name>.run —
+          # see adapters/_template/adapter.yml). Any of these keys, at any
+          # depth, means the adapter is trying to supply a WHETHER
+          # (policy's job), not just a HOW (the adapter's job).
+          disallowed="threshold thresholds exemption exemptions bypass policy override overrides"
+          found_keys=$(yq '[.. | select(tag == "!!map") | keys | .[]] | unique | .[]' "${ADAPTER_PATH}")
+          bad=""
+          while IFS= read -r key; do
+            [ -z "${key}" ] && continue
+            for d in ${disallowed}; do
+              if [ "${key}" = "${d}" ]; then
+                bad="${bad}${key} "
+              fi
+            done
+          done <<<"${found_keys}"
+          if [ -n "${bad}" ]; then
+            echo "::error::gate: adapter '${ADAPTER_PATH}' declares disallowed key(s): ${bad}— an adapter supplies only HOW to satisfy a gate category, never WHETHER (FR-003, Constitution Principle V). Thresholds, exemptions, and bypass rules live solely in policy/gate-policy.yml. Remove ${bad}from the adapter; propose any policy change centrally instead."
+            exit 1
+          fi
+          echo "gate: adapter '${ADAPTER_PATH}' contains no policy-override keys — OK."
+
+      - name: Derive required categories from policy (FR-001)
+        id: categories
+        run: |
+          set -euo pipefail
+          categories=$(yq -o=json -I=0 '[.categories[] | select(.required == true) | .name]' policy/gate-policy.yml)
+          if [ "${categories}" = "[]" ]; then
+            echo "::error::gate: policy/gate-policy.yml declares zero required categories — refusing to run a no-op gate." >&2
+            exit 1
+          fi
+          echo "categories=${categories}" >>"${GITHUB_OUTPUT}"
+          echo "gate: required categories from policy/gate-policy.yml: ${categories}"
+
+  # One leg per required category (tests, quality, security, docs — as of
+  # policy_version 1.0.0; whatever policy/gate-policy.yml currently
+  # declares as required in practice), each surfacing as its own GitHub
+  # check run (FR-001, SC-003).
+  gate:
+    name: Gate / ${{ matrix.category }}
+    needs: setup
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write # only scope beyond the floor — one check run per category (secure-defaults.md)
+    strategy:
+      fail-fast: false
+      matrix:
+        category: ${{ fromJSON(needs.setup.outputs.categories) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history: the docs category below needs the PR's merge-base
+          # against its target branch to diff changed files, which a
+          # shallow (depth=1) checkout of just the PR head does not have.
+          fetch-depth: 0
+
+      - name: Run gate — ${{ matrix.category }}
+        id: run_gate
+        # continue-on-error so the "Report" step below can still run to
+        # write the FR-005 summary; that step re-asserts failure with its
+        # own `exit 1`, so this never masks a real gate failure from the
+        # job's final conclusion (and therefore from branch protection).
+        continue-on-error: true
+        uses: ./.github/actions/run-gate
+        with:
+          adapter: ${{ needs.setup.outputs.adapter_path }}
+          category: ${{ matrix.category }}
+
+      - name: Report run-gate failure (FR-005)
+        if: steps.run_gate.outcome == 'failure'
+        env:
+          ADAPTER_PATH: ${{ needs.setup.outputs.adapter_path }}
+          CATEGORY: ${{ matrix.category }}
+        run: |
+          set -euo pipefail
+          # run-gate's own `verdict`/`category` outputs (action.yml) don't
+          # carry its RUN_GATE_MESSAGE: text — a `uses:` composite step's
+          # stdout isn't otherwise capturable by its caller. Re-invoking
+          # the same unmodified script the composite wraps, directly, in
+          # this ordinary run: step lets us capture that text — only paid
+          # on the failure path, never on the passing one.
+          set +e
+          output=$(.github/actions/run-gate/run-gate.sh --adapter "${ADAPTER_PATH}" --category "${CATEGORY}" 2>&1)
+          set -e
+          {
+            echo "### Gate category \`${CATEGORY}\` failed"
+            echo
+            echo '```'
+            if printf '%s\n' "${output}" | grep -q '_MESSAGE:'; then
+              printf '%s\n' "${output}" | grep '_MESSAGE:'
+            else
+              echo "(no *_MESSAGE: lines produced — see this leg's 'Run gate' step log for the raw failure.)"
+            fi
+            echo '```'
+          } >>"${GITHUB_STEP_SUMMARY}"
+          exit 1
+
+      - name: License-side declaration — quality category (FR-021)
+        if: matrix.category == 'quality'
+        env:
+          LICENSE_SIDE_INPUT: ${{ inputs.license_side }}
+        run: |
+          set -euo pipefail
+          set +e
+          output=$(scripts/check-license-side.sh --license-side "${LICENSE_SIDE_INPUT}" 2>&1)
+          code=$?
+          set -e
+          printf '%s\n' "${output}"
+          if [ "${code}" -ne 0 ]; then
+            {
+              echo "### Gate category \`quality\` failed (license-side declaration)"
+              echo
+              echo '```'
+              printf '%s\n' "${output}" | grep '_MESSAGE:'
+              echo '```'
+            } >>"${GITHUB_STEP_SUMMARY}"
+            exit 1
+          fi
+
+      - name: Compute PR changed files — docs category
+        if: matrix.category == 'docs'
+        id: changed_files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          changed_files_path="${RUNNER_TEMP}/gate-changed-files.txt"
+          git diff --name-only "${BASE_SHA}...${HEAD_SHA}" >"${changed_files_path}"
+          echo "path=${changed_files_path}" >>"${GITHUB_OUTPUT}"
+          echo "gate: computed $(wc -l <"${changed_files_path}") changed path(s) between ${BASE_SHA} and ${HEAD_SHA} for docs category."
+
+      - name: Docs required for user-facing changes — docs category (FR-002)
+        if: matrix.category == 'docs'
+        env:
+          CHANGED_FILES_PATH: ${{ steps.changed_files.outputs.path }}
+        run: |
+          set -euo pipefail
+          set +e
+          output=$(scripts/check-docs-required.sh --changed-files "${CHANGED_FILES_PATH}" 2>&1)
+          code=$?
+          set -e
+          printf '%s\n' "${output}"
+          if [ "${code}" -ne 0 ]; then
+            {
+              echo "### Gate category \`docs\` failed (docs-required)"
+              echo
+              echo '```'
+              printf '%s\n' "${output}" | grep '_MESSAGE:'
+              echo '```'
+            } >>"${GITHUB_STEP_SUMMARY}"
+            exit 1
+          fi
