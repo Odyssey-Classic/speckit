@@ -49,6 +49,14 @@
 # too strict in practice (e.g. routine scripts/ refactors with no
 # behavior change), revisit centrally in check-docs-required.sh, not by a
 # per-caller override (SC-005 — no bespoke gate logic).
+#
+# NOTE — security leg on first real run: speckit's docs-only `security` hook
+# runs `gitleaks`, which is NOT preinstalled on `ubuntu-latest`, and this
+# workflow does not provision it — so the `Gate / security` leg is EXPECTED to
+# fail with "command not found" until scanner provisioning lands with the
+# proving-ground rollout (T050). This is harmless today (branch protection is
+# off, so nothing is blocked); the gate machinery itself is exercised by
+# tests/e2e/gate-e2e.yml. Do not read that first-run failure as a defect here.
 
 name: CI
 
