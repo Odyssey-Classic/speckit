@@ -61,14 +61,14 @@ description: "Task list for CI/CD Pipeline, Versioning & Release Process"
 > Write these FIRST and ensure they FAIL before implementation.
 
 - [ ] T012 [P] [US1] Create gate fixtures under `tests/fixtures/` — `failing-test/`, `known-vuln-dep/`, `preexisting-vuln-only/`, `clean-change/` (US1.1, US1.2, Edge Cases)
-- [ ] T013 [P] [US1] bats unit test `tests/unit/test_run_gate.bats` — `run-gate` normalizes an adapter command's exit/output into a definitive pass/fail check result (FR-005, SC-003)
+- [X] T013 [P] [US1] bats unit test `tests/unit/test_run_gate.bats` — `run-gate` normalizes an adapter command's exit/output into a definitive pass/fail check result (FR-005, SC-003)
 - [ ] T014 [P] [US1] bats unit test `tests/unit/test_security_baseline.bats` — newly-introduced ≥high vuln blocks; pre-existing vuln is surfaced not blocked (FR-004, research D12)
 - [ ] T015 [US1] e2e harness job `tests/e2e/gate-e2e.yml` — runs `gate.yml` against the four fixtures, repeats across a Go and a non-Go adapter (US1.4), and exercises an outside-collaborator/fork PR getting identical gating (US1.5)
 
 ### Implementation for User Story 1
 
 - [ ] T016 [US1] Author `.github/workflows/gate.yml` reusable workflow — inputs `adapter` + `license_side`, runs every required category from `gate-policy.yml`, rejects `policy_overrides` loudly, emits one check per category (FR-001, FR-003, FR-021, SC-003, SC-005; inherits T011 baseline)
-- [ ] T017 [US1] Implement the `run-gate` composite `.github/actions/run-gate/action.yml` — invoke a named adapter command and normalize its result (FR-005)
+- [X] T017 [US1] Implement the `run-gate` composite `.github/actions/run-gate/action.yml` — invoke a named adapter command and normalize its result (FR-005)
 - [ ] T018 [US1] Security category baseline diff in `run-gate`/`adapters` — introduced ≥high blocks, pre-existing surfaced (FR-004, research D12)
 - [ ] T019 [P] [US1] Quality category license-side declaration check (`agpl-core` | `apache-edge`) (FR-021, Constitution III)
 - [ ] T020 [P] [US1] Docs category — require docs for user-facing changes (FR-002, Constitution VI)
