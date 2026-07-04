@@ -1,0 +1,7 @@
+# Stub changed-files list: only changes under the documented non-user-facing
+# prefixes (tests/**, .github/**, specs/** here) — should PASS, since none of
+# these paths count as "user-facing" under this script's rule, even though no
+# docs/** or *.md file was touched.
+tests/unit/test_widget.bats
+.github/workflows/gate.yml
+specs/001-cicd-pipeline/contracts/fake-contract.yml
