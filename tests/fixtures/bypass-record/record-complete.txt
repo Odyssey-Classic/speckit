@@ -1,0 +1,9 @@
+# tests/fixtures/bypass-record/record-complete.txt
+#
+# A complete bypass record under the default must_record: [actor, reason]
+# (policy.yml) — both fields present and non-empty. '#' comment lines and
+# blank lines are ignored by check-bypass-record.sh, same convention as
+# check-docs-required.sh's --changed-files list.
+
+actor: alice
+reason: prod registry outage; gate infrastructure itself unreachable, verified via status page

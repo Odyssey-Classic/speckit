@@ -1,0 +1,16 @@
+# tests/fixtures/bypass-record/policy-extra-field.yml
+#
+# Same shape as policy.yml, except bypass.must_record adds a third field
+# ("ticket") beyond actor/reason. Used by
+# tests/unit/test_check_bypass_record.bats to prove check-bypass-record.sh
+# sources its set of required fields from policy.bypass.must_record at
+# runtime rather than from a value baked into the script (same "sourced
+# from policy, not hardcoded" carried review pattern as
+# tests/fixtures/run-gate/policy-critical.yml for the security threshold).
+
+policy_version: "0.0.0-test"
+
+bypass:
+  allowed: true
+  requires: admin-override
+  must_record: [actor, reason, ticket]

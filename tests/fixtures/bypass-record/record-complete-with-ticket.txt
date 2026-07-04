@@ -1,0 +1,11 @@
+# tests/fixtures/bypass-record/record-complete-with-ticket.txt
+#
+# A complete bypass record under policy-extra-field.yml's
+# must_record: [actor, reason, ticket] — all three fields present and
+# non-empty. Pairs with record-complete.txt (which lacks 'ticket') to prove
+# check-bypass-record.sh's required-field set tracks whatever policy
+# declares, not a hardcoded pair.
+
+actor: bob
+reason: expired TLS cert blocking the security scanner; renewal in flight
+ticket: OPS-4821
