@@ -1,0 +1,5 @@
+# known-vuln-dep: the target branch (main) has NO findings - this PR is
+# what introduces golang.org/x/text@v0.3.5, so go-current.findings'
+# GO-2022-1059 finding classifies as NEW and, at/above the policy's
+# security.threshold.min_severity_block (high), BLOCKS. Contrast with
+# ../../preexisting-vuln-only/findings/go-baseline.findings.

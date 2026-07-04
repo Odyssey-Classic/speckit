@@ -1,0 +1,7 @@
+# Synthetic finding representing govulncheck flagging GO-2022-1059 (and
+# GO-2021-0113) in golang.org/x/text@v0.3.5 (see ../go/go.mod, ../go/main.go)
+# - a real, independently-verified vulnerability (see ../README.md).
+# Hand-authored, not real scanner output - same convention as
+# tests/fixtures/security-baseline/*.findings (T014). See
+# .github/actions/run-gate/security-baseline.sh's FINDING FORMAT header.
+high	GO-2022-1059|golang.org/x/text@v0.3.5

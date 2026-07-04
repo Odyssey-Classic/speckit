@@ -1,0 +1,6 @@
+# preexisting-vuln-only: the target branch (main) ALREADY has this exact
+# finding (same fingerprint as node-current.findings) - this PR did not
+# introduce lodash@4.17.15, so the finding classifies as PREEXISTING and
+# is SURFACED, never blocking on its own. Contrast with
+# ../../known-vuln-dep/findings/node-baseline.findings (empty there).
+high	GHSA-p6mc-m468-83gw|lodash@4.17.15
