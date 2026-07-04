@@ -1,0 +1,50 @@
+# Central Gate Policy — the single source of truth for merge-gate
+# categories, thresholds, exemptions, and bypass rules across every Odyssey
+# repository (Constitution Principle V; FR-002, FR-003, FR-004, FR-006).
+#
+# Each repository's adapter (adapters/<ecosystem>/adapter.yml) supplies only
+# the language-specific *means* of satisfying these categories/thresholds —
+# it MUST NOT redefine, loosen, or add to them.
+#
+# Schema + validation rules: specs/001-cicd-pipeline/contracts/gate-policy.schema.md
+#
+# Change semantics (see contract "Change semantics" section):
+#   - Loosening a threshold, removing a category, or adding a required
+#     category => policy MAJOR (consumer-visible behavior change).
+#   - Adding an exemption label or tightening within an existing category
+#     => MINOR.
+#   - Wording/description only => PATCH.
+# `policy_version` below tracks that scheme independently of policy/VERSION
+# (the speckit tag consumers pin, per D10).
+
+policy_version: "1.0.0"
+
+categories:
+  - name: tests                   # Constitution V
+    required: true
+    threshold: { must_pass: all }
+
+  - name: quality                 # lint/format + license-side declaration (Constitution III)
+    required: true
+    threshold: { must_pass: all, require_license_side: true }
+
+  - name: security                # Constitution VIII
+    required: true
+    threshold:
+      min_severity_block: high    # newly-introduced >= high blocks (FR-004, D12)
+      preexisting: surface        # pre-existing: report, do not block
+      include: [dependencies, secrets, sast]
+
+  - name: docs                    # Constitution VI
+    required: true
+    threshold: { require_docs_for_user_facing_change: true }
+
+exemptions:
+  - label: maintenance             # spec-trace exemption (D9, FR-017)
+    scope: spec-reference
+    description: "Routine maintenance with no governing spec."
+
+bypass:
+  allowed: true                    # outages / false positives (spec Edge Cases)
+  requires: admin-override         # attributable + logged; never silent (FR-006, D13)
+  must_record: [actor, reason]
