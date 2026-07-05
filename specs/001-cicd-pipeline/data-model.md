@@ -117,19 +117,22 @@ A failed build never reaches `published`.
 
 ## Spec Reference
 
-The link from a PR to the central spec/version that authorized it (D9, FR-017).
+The link from a PR to the central spec revision that authorized it (D9, FR-017).
 
 | Field | Type | Notes |
 |-------|------|-------|
 | `pr` | string | `owner/repo#number`. |
 | `spec_id` | string | e.g., `001-cicd-pipeline`. |
-| `spec_version` | string | Ratified spec version implemented. |
+| `spec_ref` | string | The `speckit` commit SHA or tag at which the referenced spec was ratified (NOT a semver version; FR-017). |
 | `exemption` | enum/null | Documented exemption label if no spec applies. |
 
 **Validation rules**:
-- A PR MUST carry either a valid `(spec_id, spec_version)` or a documented
+- A PR MUST carry either a valid `(spec_id, spec_ref)` or a documented
   `exemption`; otherwise the spec-trace gate surfaces the omission to
   reviewers (FR-017) — surfaced, not silently passed.
+- `spec_ref` MUST be a real commit or tag in `speckit` history that resolves
+  to the ratified revision of `spec_id`; no separate per-spec version-number
+  scheme is introduced (FR-017).
 
 **Relationships**: Many Spec References → one central spec (this repo's
 `specs/<id>`).
