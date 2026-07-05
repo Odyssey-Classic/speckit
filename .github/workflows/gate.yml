@@ -167,7 +167,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      checks: write # only scope beyond the floor — one check run per category (secure-defaults.md)
+      checks: write # one check run per category (secure-defaults.md)
+      pull-requests: read # read the PR's changed-files list via the REST API (docs category, FR-002)
     strategy:
       fail-fast: false
       matrix:
@@ -176,14 +177,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Full history only for the docs leg, which diffs the PR's
-          # merge-base against its target branch (git diff base...head) —
-          # a shallow (depth=1), PR-head-only checkout doesn't have that
-          # history. Every other category only runs its adapter hook
-          # against the checked-out tree and has no use for history, so it
-          # stays default-shallow to keep checkout fast for the common
-          # case.
-          fetch-depth: ${{ matrix.category == 'docs' && 0 || 1 }}
+          # A shallow (depth 1) checkout suffices for every category: each
+          # runs its adapter hook (and the quality/docs central checks)
+          # against the checked-out tree, not against git history. The docs
+          # category's changed-files list comes from the GitHub REST API
+          # (see "Compute PR changed files" below), not a local `git diff`,
+          # so it needs no history either.
+          fetch-depth: 1
 
       - name: Provision security scanners — security category
         if: matrix.category == 'security'
@@ -297,37 +297,31 @@ jobs:
         id: changed_files
         env:
           EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # github.event.pull_request.{base,head}.sha only exist on a
-          # 'pull_request' event; on any other trigger they resolve to
-          # empty strings, which would otherwise fail deep inside `git
-          # diff` with an opaque "bad revision ''" instead of naming the
-          # actual problem. Fail loudly here first, matching this file's
-          # own ::error:: convention (e.g. the 'setup' job's adapter/
-          # policy_overrides checks).
+          # github.event.pull_request.* only exists on a 'pull_request' event;
+          # fail loudly and early otherwise (matching this file's ::error::
+          # convention), rather than later with an empty PR number.
           if [ "${EVENT_NAME}" != "pull_request" ]; then
-            echo "::error::gate: docs category's changed-files diff requires a 'pull_request' event to supply github.event.pull_request.{base,head}.sha — this run was triggered by '${EVENT_NAME}'. The caller workflow must invoke this reusable workflow from an 'on: pull_request' trigger (reusable-workflow-interface.md)."
+            echo "::error::gate: docs category's changed-files list requires a 'pull_request' event to supply github.event.pull_request.number — this run was triggered by '${EVENT_NAME}'. The caller workflow must invoke this reusable workflow from an 'on: pull_request' trigger (reusable-workflow-interface.md)."
             exit 1
           fi
           changed_files_path="${RUNNER_TEMP}/gate-changed-files.txt"
-          # NOT `git diff --name-only "${BASE_SHA}...${HEAD_SHA}"` (first real
-          # CI run of PR #8 failed here with "fatal: Invalid symmetric
-          # difference expression"): on a 'pull_request' event the checkout
-          # is the ephemeral merge ref, and github.event.pull_request.base.sha
-          # is not reliably resolvable in that tree for `A...B`
-          # symmetric-difference syntax even with the docs leg's
-          # fetch-depth: 0 (checkout step above). Fetching BASE_SHA explicitly
-          # and diffing from the merge-base gets the same "this PR's own
-          # changed files" result as base...head without relying on git's
-          # symmetric-difference resolution against a ref it can't place.
-          git fetch --no-tags --no-recurse-submodules origin "${BASE_SHA}" 2>/dev/null || true
-          merge_base="$(git merge-base "${BASE_SHA}" "${HEAD_SHA}")"
-          git diff --name-only "${merge_base}" "${HEAD_SHA}" >"${changed_files_path}"
+          # Ask GitHub which files this PR changed via the REST API, rather
+          # than deriving it from the local git graph. Two earlier git-based
+          # attempts both failed on the ephemeral 'pull_request' merge-ref
+          # checkout: `git diff base...head` → "Invalid symmetric difference
+          # expression" (base.sha unplaceable), then `git merge-base base
+          # head` → "Not a valid commit name <head.sha>". The pulls/files
+          # endpoint is the authoritative answer and has no dependency on
+          # what the checkout fetched (hence the shallow checkout above).
+          gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files" \
+            --jq '.[].filename' >"${changed_files_path}"
           echo "path=${changed_files_path}" >>"${GITHUB_OUTPUT}"
-          echo "gate: computed $(wc -l <"${changed_files_path}") changed path(s) between ${BASE_SHA} and ${HEAD_SHA} for docs category."
+          echo "gate: GitHub reports $(wc -l <"${changed_files_path}") changed path(s) in PR #${PR_NUMBER} for docs category."
 
       - name: Docs required for user-facing changes — docs category (FR-002)
         if: matrix.category == 'docs'
