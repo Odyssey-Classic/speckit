@@ -69,6 +69,7 @@ jobs:
     permissions:
       contents: read
       checks: write # gate.yml's category-runner jobs emit one check run per category
+      pull-requests: read # gate.yml's docs leg reads the PR's changed-files list via the REST API (a reusable workflow can't request a scope the caller didn't grant)
     uses: ./.github/workflows/gate.yml
     with:
       adapter: docs-only

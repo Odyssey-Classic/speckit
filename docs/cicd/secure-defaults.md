@@ -67,7 +67,7 @@ baseline to check against):
 
 | Workflow | Job | Expected `permissions:` beyond the floor | Why |
 |---|---|---|---|
-| `gate.yml` | category-runner jobs | `checks: write` | emit one check run per gate category (FR-001, SC-003) |
+| `gate.yml` | category-runner jobs | `checks: write`, `pull-requests: read` | one check run per gate category (FR-001, SC-003); read the PR's changed files for the docs category (FR-002) |
 | `release.yml` | build/derive/notes jobs | *(none — floor only)* | no secrets, no repo mutation |
 | `release.yml` | sign/attest/publish job | `id-token: write`, `contents: write` | OIDC-based signing/attestation and creating the Release (FR-014, FR-016) |
 | `spec-trace.yml` | trace-check job | `pull-requests: write` *(only if it comments; otherwise floor only)* | surface a missing spec reference to reviewers (FR-017) |

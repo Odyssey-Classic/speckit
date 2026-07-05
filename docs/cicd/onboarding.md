@@ -49,6 +49,7 @@ jobs:
     permissions:
       contents: read
       checks: write
+      pull-requests: read
     uses: Odyssey-Classic/speckit/.github/workflows/gate.yml@<pinned-ref>
     with:
       adapter: <your-adapter-id>       # e.g. go, node, docs-only
@@ -71,7 +72,8 @@ doesn't fit your repo, that's a signal to propose a policy or adapter change
 centrally, not to work around it locally.
 
 The `permissions:` block matches exactly what `gate.yml`'s own jobs need
-(the `contents: read` floor plus `checks: write` for the category checks) —
+(the `contents: read` floor, `checks: write` for the category checks, and
+`pull-requests: read` for the docs category's changed-files lookup) —
 see [`secure-defaults.md`](./secure-defaults.md) §1.1. A reusable workflow
 can never be granted more than the calling job itself holds, so this is also
 the ceiling `gate.yml` runs under in your repo.
