@@ -1,0 +1,14 @@
+# This fixture's `quality` (prettier) hook must judge only THIS fixture's
+# own files. tests/e2e/gate-e2e.yml overlays this variant's files onto a
+# checkout that ALSO contains the gate-mechanism infra needed to run this
+# hook at all (.github/actions/run-gate, adapters/, policy/) plus this
+# fixture's own tests/fixtures/<fixture>/findings/ (needed by the
+# `security` category's baseline-diff seam). None of that infra is this
+# fixture's own source, has no reason to be Prettier-formatted by this
+# fixture's standard, and is out of this feature's fixture-authoring scope
+# to reformat - ignore it explicitly rather than let it leak into this
+# fixture's `quality` verdict.
+adapters/
+policy/
+.github/
+tests/

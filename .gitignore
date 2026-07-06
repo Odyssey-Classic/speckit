@@ -1,0 +1,16 @@
+# Agent scratch space — never committed.
+.superpowers/
+
+# OS cruft
+.DS_Store
+
+# Editor/backup cruft
+*.tmp
+*.swp
+
+# Node
+node_modules/
+
+# Go build artifacts
+*.test
+*.out

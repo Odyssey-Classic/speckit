@@ -1,0 +1,33 @@
+# tests/fixtures/run-gate/adapter-missing-docs.yml
+#
+# Stub adapter for tests/unit/test_run_gate.bats (T013) — deliberately omits
+# the `docs` hook entirely, to exercise run-gate.sh's "missing hook" error
+# path (a malformed/incomplete adapter must fail clearly, not silently pass
+# or crash with a raw yq trace).
+
+adapter:
+  id: stub-missing-docs
+  ecosystem: stub
+
+hooks:
+  test:
+    description: "Stub always-passing hook."
+    run: "exit 0"
+
+  lint:
+    description: "Stub always-passing hook."
+    run: "exit 0"
+
+  security:
+    description: "Stub always-passing hook."
+    run: "exit 0"
+
+  # docs hook intentionally absent — see file header.
+
+  build:
+    description: "Unused by run-gate; declared only to keep the hook set uniform with real adapters."
+    run: ": # no-op"
+
+  version-embed:
+    description: "Unused by run-gate; declared only to keep the hook set uniform with real adapters."
+    run: ": # no-op"

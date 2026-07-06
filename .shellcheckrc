@@ -1,0 +1,13 @@
+# shellcheck configuration — applies repo-wide.
+# https://www.shellcheck.net/wiki/ignore#configuration-file
+
+# Scripts in this repo are written for bash unless their shebang says
+# otherwise; assume bash semantics when a file has no extension.
+shell=bash
+
+# Surface style-level suggestions in addition to correctness/warning issues.
+severity=style
+
+# tests/bats-core is a vendored third-party copy (see tests/bats-core) and
+# is excluded at the Makefile level rather than here, since shellcheck's own
+# `source-path`/exclude options are limited; see `make lint`.

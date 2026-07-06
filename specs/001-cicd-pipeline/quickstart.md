@@ -88,7 +88,7 @@ work is not included (D14).
 
 | PR | Expected |
 |----|----------|
-| References `Spec: 001-cicd-pipeline@1.0.0` | spec-trace passes. |
+| References `Spec: 001-cicd-pipeline@spec-001-cicd-pipeline` (a `speckit` git tag/commit) | spec-trace passes. |
 | No reference, no exemption | Omission surfaced to reviewer, not silently passed (FR-017). |
 | `maintenance` label | Passes via documented exemption. |
 

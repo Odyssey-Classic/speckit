@@ -1,0 +1,58 @@
+# tests/fixtures/run-gate/adapter.yml
+#
+# Stub adapter for tests/unit/test_run_gate.bats (T013). NOT a real ecosystem
+# adapter — controllable hooks used to exercise run-gate.sh's pass/fail/
+# error-handling paths without depending on any real toolchain (go, npm,
+# gitleaks, ...). Shape follows adapters/_template/adapter.yml.
+#
+# hooks.test     -> always passes (category: tests)
+# hooks.lint     -> always fails, with output naming the specific violation
+#                   (category: quality)
+# hooks.security -> passes only if RUN_GATE_MIN_SEVERITY_BLOCK, at the time
+#                   the hook runs, equals EXPECTED_MIN_SEVERITY_BLOCK (a
+#                   value the *test* sets, standing in for "what the policy
+#                   fixture says"). This proves run-gate sources the
+#                   severity threshold from gate-policy.yml at runtime
+#                   rather than trusting a hardcoded adapter value (carried
+#                   review note; category: security).
+# hooks.docs     -> intentionally omitted from this fixture on purpose is
+#                   NOT done here — see adapter-missing-docs.yml for the
+#                   "missing hook" error-path fixture. This adapter's docs
+#                   hook always passes.
+
+adapter:
+  id: stub
+  ecosystem: stub
+
+hooks:
+  test:
+    description: "Stub always-passing hook (run-gate unit tests, category: tests)."
+    run: "echo 'stub test hook: ok'; exit 0"
+
+  lint:
+    description: "Stub always-failing hook (run-gate unit tests, category: quality)."
+    run: |
+      echo "stub lint hook: formatting violation in fixtures/foo.stub (fake finding for test)" >&2
+      exit 1
+
+  security:
+    description: "Stub hook asserting the severity threshold was sourced from policy at runtime, not hardcoded (run-gate unit tests, category: security)."
+    run: |
+      want="${EXPECTED_MIN_SEVERITY_BLOCK:-high}"
+      if [ "${RUN_GATE_MIN_SEVERITY_BLOCK:-}" != "${want}" ]; then
+        echo "expected RUN_GATE_MIN_SEVERITY_BLOCK='${want}' but got '${RUN_GATE_MIN_SEVERITY_BLOCK:-}'" >&2
+        exit 1
+      fi
+      echo "stub security hook: ok (threshold=${RUN_GATE_MIN_SEVERITY_BLOCK})"
+
+  docs:
+    description: "Stub always-passing hook (run-gate unit tests, category: docs)."
+    run: "echo 'stub docs hook: ok'; exit 0"
+
+  build:
+    description: "Unused by run-gate; declared only to keep the hook set uniform with real adapters."
+    run: ": # no-op — not exercised by run-gate tests"
+
+  version-embed:
+    description: "Unused by run-gate; declared only to keep the hook set uniform with real adapters."
+    run: ": # no-op — not exercised by run-gate tests"

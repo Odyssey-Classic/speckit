@@ -1,0 +1,14 @@
+### actionlint configuration
+### https://github.com/rhysd/actionlint/tree/main/docs/config.md
+###
+### Central config for linting reusable workflows and composite actions in
+### this repo (feature 001-cicd-pipeline). Extend the lists below as real
+### self-hosted runners / configuration variables are introduced.
+
+self-hosted-runner:
+  # Labels of self-hosted runners used by any workflow in this repo.
+  labels: []
+
+# Names of `vars.*` configuration variables any workflow may reference.
+# Empty list = none allowed yet; add names here as they are introduced.
+config-variables: []

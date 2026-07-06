@@ -1,0 +1,10 @@
+{
+  "name": "clean-change-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gate fixture (tests/fixtures/clean-change): Node/non-Go variant where every category passes.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

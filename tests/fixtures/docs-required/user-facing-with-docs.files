@@ -1,0 +1,4 @@
+# Stub changed-files list: a user-facing source change alongside a docs
+# update — should PASS (FR-002 satisfied: the change ships with docs).
+server/internal/widget/widget.go
+docs/widget.md

@@ -1,0 +1,3 @@
+# Stub changed-files list: a user-facing source change with no accompanying
+# docs change and no exemption — should FAIL (FR-002, Constitution VI).
+server/internal/widget/widget.go

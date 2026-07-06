@@ -1,0 +1,16 @@
+# tests/fixtures/bypass-record/policy.yml
+#
+# Stub gate-policy for tests/unit/test_check_bypass_record.bats (T022) —
+# shape follows policy/gate-policy.yml (contracts/gate-policy.schema.md)
+# but is standalone so the unit test never depends on (or is broken by)
+# edits to the real policy file. bypass.allowed: true, bypass.requires:
+# admin-override, bypass.must_record: [actor, reason] — the default,
+# "bypass is possible but must be attributed and justified" shape (FR-006,
+# SC-001).
+
+policy_version: "0.0.0-test"
+
+bypass:
+  allowed: true
+  requires: admin-override
+  must_record: [actor, reason]

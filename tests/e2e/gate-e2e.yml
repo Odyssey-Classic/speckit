@@ -1,0 +1,541 @@
+# tests/e2e/gate-e2e.yml
+#
+# T015 (US1, Phase 3 Independent Test): the end-to-end harness that
+# exercises the caller -> gate.yml -> run-gate -> adapter path against the
+# four T012 fixtures (tests/fixtures/failing-test|known-vuln-dep|
+# preexisting-vuln-only|clean-change/), repeated across a Go and a non-Go
+# (node) adapter (US1.4), plus a static proof of identical fork-PR gating
+# (US1.5). Unlike every other test in this repo (bats, unit-level), this
+# file only ever *executes* on a real GitHub Actions runner — there is no
+# local harness for "does a GitHub Actions workflow, composite action, and
+# checkout behave as designed on GitHub's own infrastructure." What
+# follows is the honest split of what is proven before this file ever
+# reaches a runner, versus what only a real run can prove (the task this
+# file exists to do).
+#
+# STATICALLY CHECKED (offline, before this file is ever pushed):
+#   - `actionlint tests/e2e/gate-e2e.yml` — 0 findings.
+#   - `yq '.' tests/e2e/gate-e2e.yml` — parses.
+#   - Every fixture's own tooling was verified DIRECTLY (not through this
+#     workflow) with the real local toolchain: `go test`/`gofmt -l`/`go
+#     vet`/`govulncheck` for the go/ variants, `npm ci`/`npm test`/`npx
+#     eslint`/`npx prettier --check`/`npm audit` for the node/ variants —
+#     see each fixture's README.md for its specific verified result
+#     (e.g. known-vuln-dep's golang.org/x/text@v0.3.5 dependency really is
+#     flagged by govulncheck as GO-2022-1059/GO-2021-0113; its
+#     lodash@4.17.15 really is flagged high by `npm audit` as
+#     GHSA-p6mc-m468-83gw).
+#   - The EXACT sequence this workflow runs — sparse-checkout layout,
+#     overlay, then `.github/actions/run-gate/run-gate.sh` invoked once
+#     per category, with the security category's baseline-diff seam
+#     (RUN_GATE_SECURITY_CURRENT_FINDINGS_FILE /
+#     RUN_GATE_SECURITY_BASELINE_FINDINGS_FILE) active — was dry-run
+#     locally against a faithful reproduction of the real workspace layout
+#     (a fresh directory populated with only .github/, adapters/, policy/,
+#     and this scenario's tests/fixtures/<fixture>/ subtree, exactly what
+#     the `sparse-checkout` step below produces) for all 8 fixture x
+#     adapter combinations x 4 categories = 32 assertions, all passing.
+#     This caught two real authoring bugs ahead of any runner: a
+#     hand-authored `.findings` fixture missing its data line, and
+#     Prettier's default recursive scan sweeping up unrelated
+#     adapters/policy/tests YAML once that infra sits alongside a fixture
+#     in the same workspace (fixed with a `.prettierignore` per node/
+#     fixture — see e.g. tests/fixtures/clean-change/node/.prettierignore).
+#     This dry run is NOT part of the automated suite (no bats test drives
+#     it) — it was a one-time authoring-session sanity pass captured in
+#     this session's own report; it increases confidence but is not a
+#     substitute for this file actually running.
+#   - The `fork-parity-static-checks` job below IS a real, automated,
+#     statically-evaluable check: it greps/yq's gate.yml's and this file's
+#     own YAML text for a `permissions:` floor of exactly `contents: read`,
+#     zero `secrets.*` references, and zero fork-identity-conditional
+#     logic (`head.repo.fork` / `repo.full_name` comparisons) anywhere.
+#     These hold given only the checked-out file text — no live PR event
+#     is needed to evaluate them, and this job DOES run and can DOES fail
+#     on a real CI run if either file ever regresses.
+#
+# CI-ONLY (provable only by this file actually executing on GitHub Actions):
+#   - Whether `actions/checkout@v4`'s `sparse-checkout` input actually
+#     populates the runner's workspace the way it's designed to.
+#   - Whether the 8 fixture-scenario legs' `run-gate` composite action
+#     invocations produce the asserted verdict for each category, using
+#     GitHub's actual runner image (Go/Node toolchain versions, network
+#     access to the Go module proxy / npm registry `npm ci` and `go test`
+#     need, etc.) — this is the actual point of this file.
+#   - The `gate-yml-wiring-smoke-test` job: whether the literal `uses:
+#     ./.github/workflows/gate.yml` reusable-workflow call resolves at all
+#     and its own internal jobs (setup + one leg per required category)
+#     execute successfully against this repo's own current tree
+#     (docs-only adapter) — proving the caller -> gate.yml surface itself,
+#     as distinct from the run-gate mechanism the fixture legs exercise
+#     directly (see "Design note" below for why the fixture legs don't
+#     also go through gate.yml).
+#   - The DYNAMIC confirmation of US1.5: that an actual outside-
+#     collaborator / fork-originated pull_request triggers this exact
+#     workflow and gets identical results to a same-repo PR. This
+#     workflow's own trigger (`pull_request`, paths-filtered, never
+#     `pull_request_target`, no job here ever touches a secret) is what
+#     makes that true every time a real fork PR touches these paths — but
+#     that live event can't be manufactured inside a single workflow-file
+#     authoring session. It is observed the first time an actual fork PR
+#     exercises this path, and formally recorded via quickstart.md's
+#     Scenario A-I pass (T052) against the proving-ground repos.
+#
+# -----------------------------------------------------------------------
+# DESIGN NOTE: why the fixture legs call `run-gate` directly, not gate.yml
+# -----------------------------------------------------------------------
+# `gate.yml` is a `workflow_call` reusable workflow; each of ITS OWN jobs
+# does its own `actions/checkout@v4` with no caller-controllable `ref` or
+# path scoping — that checkout is pinned to whatever ref triggered the
+# CURRENT workflow run, the same for every job/matrix leg in a single run.
+# A caller (this file included) can supply `adapter` and `license_side`
+# only (reusable-workflow-interface.md) — there is no input to point
+# gate.yml's checkout at a swappable fixture tree. That means nesting
+# `uses: ./.github/workflows/gate.yml` per fixture cannot make gate.yml
+# see different (fixture) content per matrix leg within one run; every
+# nested call would see this same repo's own current commit regardless of
+# which fixture the caller "meant". The `run-gate` composite action is
+# exactly the piece gate.yml itself delegates each category's verdict to
+# (.github/workflows/gate.yml's own `gate` job step "Run gate — ${{
+# matrix.category }}") — calling it directly, from a job whose checkout we
+# DO control, exercises the identical category-verdict mechanism against
+# swappable fixture content, which is what T012's fixtures are for. The
+# `gate-yml-wiring-smoke-test` job below separately proves the literal
+# `uses: ./.github/workflows/gate.yml` caller path itself resolves and
+# runs, against this repo's own real tree (the one thing that path CAN be
+# faithfully exercised against inside this same file).
+#
+# `docs`/`quality`'s own centrally-implemented halves — check-docs-
+# required.sh's PR-diff-based "did a user-facing change ship with docs"
+# rule, and check-license-side.sh's `license_side`-input check — are
+# input/diff-driven, not adapter- or fixture-content-driven, and are
+# already independently covered by tests/unit/test_check_docs_required.bats
+# and tests/unit/test_check_license_side.bats (T019/T020). None of the
+# four T012 fixtures targets quality or docs as their driving category
+# (see each fixture's README.md), so this harness exercises only the
+# adapter-hook half of those two categories (gofmt/vet or eslint/prettier;
+# README.md presence) via `run-gate`, which IS fixture/adapter-driven.
+#
+# KNOWN GAP surfaced while building this harness (documented, not fixed
+# here — out of this task's tests/fixtures + tests/e2e scope): the go/node
+# adapters' multi-line `security`/`lint` hooks (adapters/go/adapter.yml,
+# adapters/node/adapter.yml) chain commands with plain newlines and no
+# `set -e`/`&&`, so only the LAST command's exit code survives `bash -c`
+# (e.g. a failing `govulncheck`/`npm audit` would be masked by a
+# subsequent, successful `gitleaks detect`). This is exactly why every
+# fixture leg below always routes the `security` category through the
+# baseline-diff seam (RUN_GATE_SECURITY_CURRENT_FINDINGS_FILE /
+# RUN_GATE_SECURITY_BASELINE_FINDINGS_FILE) rather than trusting the raw
+# hook exit code even for `failing-test`/`clean-change` (which reuses
+# tests/fixtures/security-baseline/empty.findings, T014's existing empty
+# fixture, for both current and baseline there) — this makes every
+# scenario's security verdict deterministic and independent both of that
+# adapter-authoring gap and of whether a given runner image happens to
+# have `govulncheck`/`gitleaks` preinstalled (neither ships on
+# `ubuntu-latest` by default; T050's proving-ground rollout is where that
+# gets addressed for real repos).
+
+name: Gate E2E (fixtures)
+
+on:
+  pull_request:
+    paths:
+      - ".github/actions/run-gate/**"
+      - ".github/workflows/gate.yml"
+      - "adapters/**"
+      - "policy/**"
+      - "tests/fixtures/**"
+      - "tests/e2e/gate-e2e.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read # secure-by-default floor (T011) — every job below gets at most this
+
+jobs:
+  # One matrix leg per (fixture, adapter) scenario (T012, US1.1/US1.2/
+  # Edge Cases, repeated for US1.4). Each leg overlays one fixture variant
+  # onto a minimal, sparse checkout of just the gate mechanism's own
+  # infra, invokes `run-gate` once per required category exactly as
+  # gate.yml's own `gate` job does, and asserts the resulting verdict
+  # against this scenario's documented expectation (see each fixture's
+  # README.md).
+  fixture-scenarios:
+    name: "Fixture: ${{ matrix.fixture }} (${{ matrix.adapter }}) — expect ${{ matrix.outcome }}"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - fixture: failing-test
+            adapter: go
+            outcome: "BLOCKED (tests)"
+            expect_tests: fail
+            expect_quality: pass
+            expect_docs: pass
+            expect_security: pass
+            mergeable: "false"
+            current_findings: tests/fixtures/security-baseline/empty.findings
+            baseline_findings: tests/fixtures/security-baseline/empty.findings
+          - fixture: failing-test
+            adapter: node
+            outcome: "BLOCKED (tests)"
+            expect_tests: fail
+            expect_quality: pass
+            expect_docs: pass
+            expect_security: pass
+            mergeable: "false"
+            current_findings: tests/fixtures/security-baseline/empty.findings
+            baseline_findings: tests/fixtures/security-baseline/empty.findings
+          - fixture: clean-change
+            adapter: go
+            outcome: "MERGEABLE"
+            expect_tests: pass
+            expect_quality: pass
+            expect_docs: pass
+            expect_security: pass
+            mergeable: "true"
+            current_findings: tests/fixtures/security-baseline/empty.findings
+            baseline_findings: tests/fixtures/security-baseline/empty.findings
+          - fixture: clean-change
+            adapter: node
+            outcome: "MERGEABLE"
+            expect_tests: pass
+            expect_quality: pass
+            expect_docs: pass
+            expect_security: pass
+            mergeable: "true"
+            current_findings: tests/fixtures/security-baseline/empty.findings
+            baseline_findings: tests/fixtures/security-baseline/empty.findings
+          - fixture: known-vuln-dep
+            adapter: go
+            outcome: "BLOCKED (security, newly-introduced)"
+            expect_tests: pass
+            expect_quality: pass
+            expect_docs: pass
+            expect_security: fail
+            mergeable: "false"
+            current_findings: tests/fixtures/known-vuln-dep/findings/go-current.findings
+            baseline_findings: tests/fixtures/known-vuln-dep/findings/go-baseline.findings
+          - fixture: known-vuln-dep
+            adapter: node
+            outcome: "BLOCKED (security, newly-introduced)"
+            expect_tests: pass
+            expect_quality: pass
+            expect_docs: pass
+            expect_security: fail
+            mergeable: "false"
+            current_findings: tests/fixtures/known-vuln-dep/findings/node-current.findings
+            baseline_findings: tests/fixtures/known-vuln-dep/findings/node-baseline.findings
+          - fixture: preexisting-vuln-only
+            adapter: go
+            outcome: "SURFACED, not blocked"
+            expect_tests: pass
+            expect_quality: pass
+            expect_docs: pass
+            expect_security: pass
+            mergeable: "true"
+            current_findings: tests/fixtures/preexisting-vuln-only/findings/go-current.findings
+            baseline_findings: tests/fixtures/preexisting-vuln-only/findings/go-baseline.findings
+          - fixture: preexisting-vuln-only
+            adapter: node
+            outcome: "SURFACED, not blocked"
+            expect_tests: pass
+            expect_quality: pass
+            expect_docs: pass
+            expect_security: pass
+            mergeable: "true"
+            current_findings: tests/fixtures/preexisting-vuln-only/findings/node-current.findings
+            baseline_findings: tests/fixtures/preexisting-vuln-only/findings/node-baseline.findings
+    # Job-level (not step-level) so both the security category's `run-gate`
+    # invocation AND, harmlessly, the other three categories' invocations
+    # see it — run-gate.sh only reads these two vars when category ==
+    # security (see its "SEAM FOR T018" comment), so their presence is a
+    # no-op for tests/quality/docs. Step-level `env:` on a `uses:` step is
+    # NOT reliably passed through into a composite action's own internal
+    # steps (only `inputs:` are guaranteed to cross that boundary); a
+    # job-level `env:` block, by contrast, is unambiguously part of every
+    # step's process environment in this job, composite-action steps
+    # included — this is why it's declared here rather than on the
+    # "Gate category: security" step below.
+    env:
+      RUN_GATE_SECURITY_CURRENT_FINDINGS_FILE: ${{ matrix.current_findings }}
+      RUN_GATE_SECURITY_BASELINE_FINDINGS_FILE: ${{ matrix.baseline_findings }}
+    steps:
+      - name: Checkout (sparse — gate-mechanism infra + this scenario's fixture only)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          # Deliberately narrow: everything else in this repo (docs/,
+          # specs/, CLAUDE.md, tests/bats-core/, the OTHER fixtures, …)
+          # must NOT be present once we overlay this scenario's fixture
+          # onto the workspace root below — several of this scenario's
+          # `quality`/`tests` hooks (`prettier --check .`, `node --test`)
+          # recursively scan the whole working directory by default, and
+          # would otherwise pick up unrelated pre-existing files (this
+          # was verified empirically while authoring this file: an
+          # earlier full-checkout version of this design saw Prettier
+          # flag ~78 unrelated repo files, and Node's test runner
+          # auto-discover and run every OTHER fixture's test file too).
+          sparse-checkout: |
+            .github
+            adapters
+            policy
+            tests/fixtures/${{ matrix.fixture }}
+            tests/fixtures/security-baseline
+
+      - name: Overlay fixture variant onto workspace root
+        env:
+          # Routed through env: + shell variables, never interpolated
+          # directly into the run: body, matching this repo's established
+          # convention (.github/actions/harden/action.yml's header
+          # comment: script-injection mitigation, and it keeps this
+          # script shellcheck-clean — `${{ }}` is substituted before the
+          # shell ever sees it, so a literal occurrence in script text
+          # reads to shellcheck as invalid parameter-expansion syntax).
+          FIXTURE: ${{ matrix.fixture }}
+          ADAPTER: ${{ matrix.adapter }}
+        run: |
+          set -euo pipefail
+          cp -a "tests/fixtures/${FIXTURE}/${ADAPTER}/." .
+          # Remove the now-redundant nested copy so tooling that scans
+          # the whole tree (Node's test runner in particular) doesn't
+          # discover and re-run the same fixture twice. This scenario's
+          # findings/ subtree (used by the security assertion below) and
+          # its own top-level README.md are untouched — only the
+          # <fixture>/<adapter> subdirectory just copied out is removed.
+          rm -rf "tests/fixtures/${FIXTURE}/${ADAPTER}"
+
+      - name: "Gate category: tests"
+        id: tests
+        continue-on-error: true # this scenario's own assertion step below is what actually judges pass/fail
+        uses: ./.github/actions/run-gate
+        with:
+          adapter: adapters/${{ matrix.adapter }}/adapter.yml
+          category: tests
+
+      - name: "Assert: tests verdict"
+        env:
+          FIXTURE: ${{ matrix.fixture }}
+          ADAPTER: ${{ matrix.adapter }}
+          GOT: ${{ steps.tests.outputs.verdict }}
+          WANT: ${{ matrix.expect_tests }}
+          MSG: ${{ steps.tests.outputs.message }}
+        run: |
+          set -euo pipefail
+          echo "tests: want=${WANT} got=${GOT}"
+          if [ "${GOT}" != "${WANT}" ]; then
+            echo "::error::e2e assertion failed for ${FIXTURE}/${ADAPTER}, category 'tests': want verdict '${WANT}', got '${GOT}'."
+            if [ -n "${MSG}" ]; then printf '%s\n' "${MSG}"; fi
+            exit 1
+          fi
+
+      - name: "Gate category: quality"
+        id: quality
+        continue-on-error: true
+        uses: ./.github/actions/run-gate
+        with:
+          adapter: adapters/${{ matrix.adapter }}/adapter.yml
+          category: quality
+
+      - name: "Assert: quality verdict"
+        env:
+          FIXTURE: ${{ matrix.fixture }}
+          ADAPTER: ${{ matrix.adapter }}
+          GOT: ${{ steps.quality.outputs.verdict }}
+          WANT: ${{ matrix.expect_quality }}
+          MSG: ${{ steps.quality.outputs.message }}
+        run: |
+          set -euo pipefail
+          echo "quality: want=${WANT} got=${GOT}"
+          if [ "${GOT}" != "${WANT}" ]; then
+            echo "::error::e2e assertion failed for ${FIXTURE}/${ADAPTER}, category 'quality': want verdict '${WANT}', got '${GOT}'."
+            if [ -n "${MSG}" ]; then printf '%s\n' "${MSG}"; fi
+            exit 1
+          fi
+
+      - name: "Gate category: docs"
+        id: docs
+        continue-on-error: true
+        uses: ./.github/actions/run-gate
+        with:
+          adapter: adapters/${{ matrix.adapter }}/adapter.yml
+          category: docs
+
+      - name: "Assert: docs verdict"
+        env:
+          FIXTURE: ${{ matrix.fixture }}
+          ADAPTER: ${{ matrix.adapter }}
+          GOT: ${{ steps.docs.outputs.verdict }}
+          WANT: ${{ matrix.expect_docs }}
+          MSG: ${{ steps.docs.outputs.message }}
+        run: |
+          set -euo pipefail
+          echo "docs: want=${WANT} got=${GOT}"
+          if [ "${GOT}" != "${WANT}" ]; then
+            echo "::error::e2e assertion failed for ${FIXTURE}/${ADAPTER}, category 'docs': want verdict '${WANT}', got '${GOT}'."
+            if [ -n "${MSG}" ]; then printf '%s\n' "${MSG}"; fi
+            exit 1
+          fi
+
+      - name: "Gate category: security (baseline-diff seam active, D12/T018)"
+        id: security
+        continue-on-error: true
+        uses: ./.github/actions/run-gate
+        with:
+          adapter: adapters/${{ matrix.adapter }}/adapter.yml
+          category: security
+
+      - name: "Assert: security verdict"
+        env:
+          FIXTURE: ${{ matrix.fixture }}
+          ADAPTER: ${{ matrix.adapter }}
+          GOT: ${{ steps.security.outputs.verdict }}
+          WANT: ${{ matrix.expect_security }}
+          MSG: ${{ steps.security.outputs.message }}
+        run: |
+          set -euo pipefail
+          echo "security: want=${WANT} got=${GOT}"
+          if [ "${GOT}" != "${WANT}" ]; then
+            echo "::error::e2e assertion failed for ${FIXTURE}/${ADAPTER}, category 'security': want verdict '${WANT}', got '${GOT}'."
+            if [ -n "${MSG}" ]; then printf '%s\n' "${MSG}"; fi
+            exit 1
+          fi
+
+      - name: "Scenario outcome: ${{ matrix.outcome }}"
+        env:
+          FIXTURE: ${{ matrix.fixture }}
+          ADAPTER: ${{ matrix.adapter }}
+          OUTCOME: ${{ matrix.outcome }}
+          TESTS_VERDICT: ${{ steps.tests.outputs.verdict }}
+          QUALITY_VERDICT: ${{ steps.quality.outputs.verdict }}
+          DOCS_VERDICT: ${{ steps.docs.outputs.verdict }}
+          SECURITY_VERDICT: ${{ steps.security.outputs.verdict }}
+          WANT_MERGEABLE: ${{ matrix.mergeable }}
+        run: |
+          set -euo pipefail
+          if [ "${TESTS_VERDICT}" = pass ] && [ "${QUALITY_VERDICT}" = pass ] \
+             && [ "${DOCS_VERDICT}" = pass ] && [ "${SECURITY_VERDICT}" = pass ]; then
+            mergeable=true
+          else
+            mergeable=false
+          fi
+          echo "computed overall mergeable=${mergeable} (tests=${TESTS_VERDICT} quality=${QUALITY_VERDICT} docs=${DOCS_VERDICT} security=${SECURITY_VERDICT})"
+          if [ "${mergeable}" != "${WANT_MERGEABLE}" ]; then
+            echo "::error::e2e: ${FIXTURE}/${ADAPTER} expected overall mergeable=${WANT_MERGEABLE}, computed ${mergeable}."
+            exit 1
+          fi
+          {
+            echo "### ${FIXTURE} (${ADAPTER}): ${OUTCOME} — confirmed"
+            echo "tests=${TESTS_VERDICT} quality=${QUALITY_VERDICT} docs=${DOCS_VERDICT} security=${SECURITY_VERDICT} mergeable=${mergeable}"
+          } >>"${GITHUB_STEP_SUMMARY}"
+
+  # US1.5 static half: gate.yml (and this file itself) never special-cases
+  # a fork PR — no secret it could leak differently, no conditional keyed
+  # on `head.repo.fork`/`repo.full_name`, and a `permissions:` floor of
+  # exactly `contents: read`. These are real, automated assertions over
+  # the checked-out YAML text (not a simulation of a fork event) — see
+  # this file's own header for what remains CI-only about US1.5.
+  fork-parity-static-checks:
+    name: Fork-parity static checks (US1.5)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Assert gate.yml triggers only on workflow_call
+        run: |
+          set -euo pipefail
+          triggers=$(yq -o=json -I=0 '.["on"] | keys' .github/workflows/gate.yml)
+          echo "gate.yml 'on' triggers: ${triggers}"
+          if [ "${triggers}" != '["workflow_call"]' ]; then
+            echo "::error::gate.yml must trigger only on workflow_call (a caller's own pull_request drives when it runs, never pull_request_target) — found: ${triggers}"
+            exit 1
+          fi
+
+      - name: Assert gate.yml's permissions floor is exactly contents:read
+        run: |
+          set -euo pipefail
+          perms=$(yq -o=json -I=0 '.permissions' .github/workflows/gate.yml)
+          echo "gate.yml top-level permissions: ${perms}"
+          if [ "${perms}" != '{"contents":"read"}' ]; then
+            echo "::error::gate.yml's top-level permissions must be exactly {contents: read} (docs/cicd/secure-defaults.md Sec. 1.1) — found: ${perms}"
+            exit 1
+          fi
+
+      - name: Assert gate.yml never references a secret
+        run: |
+          set -euo pipefail
+          if grep -Eq '\bsecrets\.[A-Za-z_]' .github/workflows/gate.yml; then
+            echo "::error::gate.yml references a secrets.* value — a fork PR and a same-repo PR could then be treated differently depending on platform secret-redaction behavior (docs/cicd/secure-defaults.md Sec. 1.2/1.3); gate.yml must never touch one."
+            exit 1
+          fi
+          echo "gate.yml: no secrets.* reference found."
+
+      - name: Assert gate.yml never branches on fork identity
+        run: |
+          set -euo pipefail
+          # Matched only inside a live double-curly-brace expression —
+          # never a bare substring — so a prose comment merely discussing
+          # "head.repo.fork" (as this very file's own header and job
+          # descriptions do, in backticks) can never trip this check;
+          # only a real conditional expression can.
+          if grep -Eq '\{\{[^}]*(head\.repo\.fork|repo\.full_name)' .github/workflows/gate.yml; then
+            echo "::error::gate.yml contains fork-identity-conditional logic — a same-repo PR and a fork PR must run identical steps (US1.5). Only .github/actions/harden may make that distinction, and only for secret-bearing jobs; gate.yml has none."
+            exit 1
+          fi
+          echo "gate.yml: no fork-identity conditional found."
+
+      - name: Assert this harness file holds itself to the same standard
+        run: |
+          set -euo pipefail
+          triggers=$(yq -o=json -I=0 '.["on"] | keys' tests/e2e/gate-e2e.yml)
+          perms=$(yq -o=json -I=0 '.permissions' tests/e2e/gate-e2e.yml)
+          echo "gate-e2e.yml 'on' triggers: ${triggers}; top-level permissions: ${perms}"
+          if printf '%s' "${triggers}" | grep -q 'pull_request_target'; then
+            echo "::error::tests/e2e/gate-e2e.yml itself must never trigger on pull_request_target."
+            exit 1
+          fi
+          if [ "${perms}" != '{"contents":"read"}' ]; then
+            echo "::error::tests/e2e/gate-e2e.yml's own top-level permissions must be exactly {contents: read} — found: ${perms}"
+            exit 1
+          fi
+          if grep -Eq '\bsecrets\.[A-Za-z_]' tests/e2e/gate-e2e.yml; then
+            echo "::error::tests/e2e/gate-e2e.yml itself references a secrets.* value — it must stay secret-free to prove the mechanism it tests is fork-safe."
+            exit 1
+          fi
+          if grep -Eq '\{\{[^}]*(head\.repo\.fork|repo\.full_name)' tests/e2e/gate-e2e.yml; then
+            echo "::error::tests/e2e/gate-e2e.yml itself must not branch on fork identity — every job here runs identically for a fork PR and a same-repo PR."
+            exit 1
+          fi
+          echo "gate-e2e.yml: holds itself to the same fork-parity standard."
+
+  # Proves the literal caller -> gate.yml surface (reusable-workflow-
+  # interface.md) resolves and executes — as distinct from the `run-gate`
+  # mechanism the fixture-scenarios job exercises directly (see this
+  # file's header "Design note"). Runs against this repo's OWN current
+  # tree via the docs-only adapter, the same profile speckit's own
+  # `.github/workflows/ci.yml` (T023) already gates every PR with; this
+  # job makes that same proof visible from inside the e2e harness itself
+  # rather than only by cross-referencing ci.yml. `if:` is scoped to
+  # `pull_request` because gate.yml's own `docs` category (check-docs-
+  # required.sh) requires a real pull_request event to diff against — see
+  # gate.yml's own "Compute PR changed files" step; a workflow_dispatch
+  # run of this harness intentionally skips this one job rather than
+  # failing on a mismatched trigger context that has nothing to do with
+  # what this job is proving.
+  gate-yml-wiring-smoke-test:
+    name: "Wiring smoke test: caller -> gate.yml (docs-only, this repo's own tree)"
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      checks: write # gate.yml's category-runner jobs emit one check run per category
+      pull-requests: read # gate.yml's docs leg reads the PR's changed files via the REST API
+    uses: ./.github/workflows/gate.yml
+    with:
+      adapter: docs-only
+      license_side: agpl-core

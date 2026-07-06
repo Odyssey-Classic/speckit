@@ -25,10 +25,10 @@ description: "Task list for CI/CD Pipeline, Versioning & Release Process"
 
 **Purpose**: Repository scaffolding and the test/lint toolchain everything else builds on.
 
-- [ ] T001 Create the central directory structure per plan.md (`.github/workflows/`, `.github/actions/`, `policy/`, `adapters/`, `docs/cicd/`, `tests/fixtures/`, `tests/e2e/`) with `.gitkeep` placeholders
-- [ ] T002 [P] Add workflow/shell linting config — `actionlint` + `shellcheck` configuration and a root `Makefile` (or `tests/run.sh`) test/lint entrypoint
-- [ ] T003 [P] Initialize the `bats` shell-test harness under `tests/` (vendor/submodule bats-core; create `tests/unit/` layout)
-- [ ] T004 [P] Seed `policy/VERSION` with the initial policy version (`1.0.0`) matching the consumer pin scheme (FR-018)
+- [X] T001 Create the central directory structure per plan.md (`.github/workflows/`, `.github/actions/`, `policy/`, `adapters/`, `docs/cicd/`, `tests/fixtures/`, `tests/e2e/`) with `.gitkeep` placeholders
+- [X] T002 [P] Add workflow/shell linting config — `actionlint` + `shellcheck` configuration and a root `Makefile` (or `tests/run.sh`) test/lint entrypoint
+- [X] T003 [P] Initialize the `bats` shell-test harness under `tests/` (vendor/submodule bats-core; create `tests/unit/` layout)
+- [X] T004 [P] Seed `policy/VERSION` with the initial policy version (`1.0.0`) matching the consumer pin scheme (FR-018)
 
 ---
 
@@ -38,13 +38,13 @@ description: "Task list for CI/CD Pipeline, Versioning & Release Process"
 
 **⚠️ CRITICAL**: No user-story work can begin until this phase is complete.
 
-- [ ] T005 Author `policy/gate-policy.yml` per `contracts/gate-policy.schema.md` — the four required categories (`tests`/`quality`/`security`/`docs`), their thresholds (incl. `security.min_severity_block: high`), exemption labels, and bypass rules (FR-002, FR-003, FR-004, FR-006)
-- [ ] T006 [P] bats validation test `tests/unit/test_gate_policy.bats` — asserts all four categories present + required, `security.min_severity_block` set, every exemption has a description, `bypass.requires != none` with `must_record: [actor, reason]` (FR-002, FR-004, FR-006)
-- [ ] T007 Create the uniform adapter contract `adapters/_template/adapter.yml` — declared command hooks (`test`, `lint`, `security`, `docs`, `build`, `version-embed`) that any ecosystem fills in as configuration, never bespoke gate logic (FR-003, SC-005)
-- [ ] T008 [P] Author `adapters/go/adapter.yml` — `go test`, lint/format, `govulncheck`, docs check, reproducible build, and `ldflags` version embedding (FR-003)
-- [ ] T009 [P] Author `adapters/node/adapter.yml` — Node/web-client equivalents for each command hook (FR-003)
-- [ ] T010 [P] Author `adapters/docs-only/adapter.yml` — the `speckit` governance profile: document validity + constitution-compliance checks, no code tests (spec Edge Cases & Assumptions: the spec repo is governed, not exempt)
-- [ ] T011 Establish the secure-by-default workflow baseline (least-privilege `permissions:` defaults, secret masking, no secrets exposed to untrusted fork-PR contexts, auditable secret/signing-key access) as a documented convention + reusable snippet under `.github/actions/` (FR-020, SC-008, Constitution VIII) — every workflow authored later inherits this
+- [X] T005 Author `policy/gate-policy.yml` per `contracts/gate-policy.schema.md` — the four required categories (`tests`/`quality`/`security`/`docs`), their thresholds (incl. `security.min_severity_block: high`), exemption labels, and bypass rules (FR-002, FR-003, FR-004, FR-006)
+- [X] T006 [P] bats validation test `tests/unit/test_gate_policy.bats` — asserts all four categories present + required, `security.min_severity_block` set, every exemption has a description, `bypass.requires != none` with `must_record: [actor, reason]` (FR-002, FR-004, FR-006)
+- [X] T007 Create the uniform adapter contract `adapters/_template/adapter.yml` — declared command hooks (`test`, `lint`, `security`, `docs`, `build`, `version-embed`) that any ecosystem fills in as configuration, never bespoke gate logic (FR-003, SC-005)
+- [X] T008 [P] Author `adapters/go/adapter.yml` — `go test`, lint/format, `govulncheck`, docs check, reproducible build, and `ldflags` version embedding (FR-003)
+- [X] T009 [P] Author `adapters/node/adapter.yml` — Node/web-client equivalents for each command hook (FR-003)
+- [X] T010 [P] Author `adapters/docs-only/adapter.yml` — the `speckit` governance profile: document validity + constitution-compliance checks, no code tests (spec Edge Cases & Assumptions: the spec repo is governed, not exempt)
+- [X] T011 Establish the secure-by-default workflow baseline (least-privilege `permissions:` defaults, secret masking, no secrets exposed to untrusted fork-PR contexts, auditable secret/signing-key access) as a documented convention + reusable snippet under `.github/actions/` (FR-020, SC-008, Constitution VIII) — every workflow authored later inherits this
 
 **Checkpoint**: Central policy, adapters, and the secure baseline exist — user stories can begin.
 
@@ -60,22 +60,22 @@ description: "Task list for CI/CD Pipeline, Versioning & Release Process"
 
 > Write these FIRST and ensure they FAIL before implementation.
 
-- [ ] T012 [P] [US1] Create gate fixtures under `tests/fixtures/` — `failing-test/`, `known-vuln-dep/`, `preexisting-vuln-only/`, `clean-change/` (US1.1, US1.2, Edge Cases)
-- [ ] T013 [P] [US1] bats unit test `tests/unit/test_run_gate.bats` — `run-gate` normalizes an adapter command's exit/output into a definitive pass/fail check result (FR-005, SC-003)
-- [ ] T014 [P] [US1] bats unit test `tests/unit/test_security_baseline.bats` — newly-introduced ≥high vuln blocks; pre-existing vuln is surfaced not blocked (FR-004, research D12)
-- [ ] T015 [US1] e2e harness job `tests/e2e/gate-e2e.yml` — runs `gate.yml` against the four fixtures, repeats across a Go and a non-Go adapter (US1.4), and exercises an outside-collaborator/fork PR getting identical gating (US1.5)
+- [X] T012 [P] [US1] Create gate fixtures under `tests/fixtures/` — `failing-test/`, `known-vuln-dep/`, `preexisting-vuln-only/`, `clean-change/` (US1.1, US1.2, Edge Cases)
+- [X] T013 [P] [US1] bats unit test `tests/unit/test_run_gate.bats` — `run-gate` normalizes an adapter command's exit/output into a definitive pass/fail check result (FR-005, SC-003)
+- [X] T014 [P] [US1] bats unit test `tests/unit/test_security_baseline.bats` — newly-introduced ≥high vuln blocks; pre-existing vuln is surfaced not blocked (FR-004, research D12)
+- [X] T015 [US1] e2e harness job `tests/e2e/gate-e2e.yml` — runs `gate.yml` against the four fixtures, repeats across a Go and a non-Go adapter (US1.4), and exercises an outside-collaborator/fork PR getting identical gating (US1.5)
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Author `.github/workflows/gate.yml` reusable workflow — inputs `adapter` + `license_side`, runs every required category from `gate-policy.yml`, rejects `policy_overrides` loudly, emits one check per category (FR-001, FR-003, FR-021, SC-003, SC-005; inherits T011 baseline)
-- [ ] T017 [US1] Implement the `run-gate` composite `.github/actions/run-gate/action.yml` — invoke a named adapter command and normalize its result (FR-005)
-- [ ] T018 [US1] Security category baseline diff in `run-gate`/`adapters` — introduced ≥high blocks, pre-existing surfaced (FR-004, research D12)
-- [ ] T019 [P] [US1] Quality category license-side declaration check (`agpl-core` | `apache-edge`) (FR-021, Constitution III)
-- [ ] T020 [P] [US1] Docs category — require docs for user-facing changes (FR-002, Constitution VI)
-- [ ] T021 [US1] Gate-failure messaging — each category reports which gate failed, on what, and what passing requires, without insider interpretation (FR-005)
-- [ ] T022 [US1] Bypass recording — any required-gate bypass is attributable, logged, and justified; silent bypass impossible (FR-006, SC-001)
-- [ ] T023 [US1] `speckit` self-adoption caller `.github/workflows/ci.yml` using the `docs-only` adapter — dogfoods the gate so the spec repo is not exempt (Edge Cases)
-- [ ] T024 [US1] Author `docs/cicd/onboarding.md` — adopt the standard gates + branch protection in a new repo (FR-019, SC-005, Constitution VI)
+- [X] T016 [US1] Author `.github/workflows/gate.yml` reusable workflow — inputs `adapter` + `license_side`, runs every required category from `gate-policy.yml`, rejects `policy_overrides` loudly, emits one check per category (FR-001, FR-003, FR-021, SC-003, SC-005; inherits T011 baseline)
+- [X] T017 [US1] Implement the `run-gate` composite `.github/actions/run-gate/action.yml` — invoke a named adapter command and normalize its result (FR-005)
+- [X] T018 [US1] Security category baseline diff in `run-gate`/`adapters` — introduced ≥high blocks, pre-existing surfaced (FR-004, research D12)
+- [X] T019 [P] [US1] Quality category license-side declaration check (`agpl-core` | `apache-edge`) (FR-021, Constitution III)
+- [X] T020 [P] [US1] Docs category — require docs for user-facing changes (FR-002, Constitution VI)
+- [X] T021 [US1] Gate-failure messaging — each category reports which gate failed, on what, and what passing requires, without insider interpretation (FR-005)
+- [X] T022 [US1] Bypass recording — any required-gate bypass is attributable, logged, and justified; silent bypass impossible (FR-006, SC-001)
+- [X] T023 [US1] `speckit` self-adoption caller `.github/workflows/ci.yml` using the `docs-only` adapter — dogfoods the gate so the spec repo is not exempt (Edge Cases)
+- [X] T024 [US1] Author `docs/cicd/onboarding.md` — adopt the standard gates + branch protection in a new repo (FR-019, SC-005, Constitution VI)
 
 **Checkpoint**: A repo can adopt the full gate set by configuration alone, and bad PRs are blocked with clear reasons. **MVP deliverable.**
 

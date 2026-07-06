@@ -1,0 +1,76 @@
+# .github/workflows/ci.yml
+#
+# T023 (US1, spec Edge Cases: "the spec repository itself ... must not be
+# exempt from gating into main") — speckit's OWN caller workflow. This repo
+# is the first consumer of .github/workflows/gate.yml (T016), and this file
+# is exactly the "entire required content" a caller repo authors per
+# specs/001-cicd-pipeline/contracts/reusable-workflow-interface.md's
+# `gate.yml` section: two inputs (`adapter`, `license_side`), zero bespoke
+# gate logic (SC-005). Adoption is configuration, not design — this file IS
+# the proof.
+#
+# adapter: docs-only — speckit ships specs, policy, and workflow
+# definitions, not compiled code (adapters/docs-only/adapter.yml).
+# license_side: agpl-core — this repo's declared side per charters/
+# speckit.md ("central governance is not an ecosystem edge ... aligns with
+# the copyleft engine core", Constitution Principle III).
+#
+# `uses: ./.github/workflows/gate.yml` (a same-repo relative path, not
+# `Odyssey-Classic/speckit/.github/workflows/gate.yml@<ref>`) is
+# deliberate: speckit is gate.yml's own source of truth, so it always
+# gates against its own current commit rather than a published tag —
+# there is no earlier "policy-vX" ref to pin to from inside the repo that
+# defines policy-vX in the first place. A downstream consumer's caller
+# workflow (docs/cicd/onboarding.md) pins a remote ref instead; that's the
+# one difference between this file and the onboarding template.
+#
+# permissions: the `gate` job below grants exactly what gate.yml's own
+# jobs declare needing (docs/cicd/secure-defaults.md Sec. 1.1) — the
+# `contents: read` floor plus `checks: write` for the category matrix
+# legs that each emit one GitHub check run (FR-001, SC-003). A reusable
+# workflow can never exceed the permissions its calling job was granted,
+# so this is also the ceiling gate.yml's jobs run under here.
+#
+# check-docs-required interaction (scripts/check-docs-required.sh): its
+# non-user-facing prefixes are docs/ tests/ .github/ specs/ — deliberately
+# NOT scripts/ .specify/ adapters/ policy/. For speckit specifically this
+# is intentional, not an oversight: unlike a typical application repo,
+# speckit's adapters/ and policy/ ARE its user-facing product (the
+# interface every other repo consumes), and scripts/ is the tested,
+# executable implementation of that same interface — a change to any of
+# them is exactly the kind of change Constitution VI expects to ship with
+# docs. .specify/ is SpecKit's own upstream framework, not owned by this
+# feature (see Makefile's SHELL_LINT_DIRS comment for the same carve-out
+# rationale) and is rarely touched bare; leaving it off the exempt list
+# errs toward "surface it, a human can judge" rather than silently
+# widening what counts as "no docs needed." This decision is recorded
+# here rather than by editing the prefix list, per this task's
+# instruction not to expand it without global confidence. If this proves
+# too strict in practice (e.g. routine scripts/ refactors with no
+# behavior change), revisit centrally in check-docs-required.sh, not by a
+# per-caller override (SC-005 — no bespoke gate logic).
+#
+# NOTE — security leg: gate.yml provisions the scanners its security hooks
+# need (pinned gitleaks + govulncheck) in its own `security` matrix leg, so
+# this repo's `Gate / security` runs gitleaks against the tree. (This leg
+# previously failed "command not found" until that provisioning landed;
+# per-adapter tool declaration is the cleaner future design.)
+
+name: CI
+
+on:
+  pull_request: {}
+
+permissions:
+  contents: read # secure-by-default floor (secure-defaults.md Sec. 1.1)
+
+jobs:
+  gate:
+    permissions:
+      contents: read
+      checks: write # gate.yml's category-runner jobs emit one check run per category
+      pull-requests: read # gate.yml's docs leg reads the PR's changed-files list via the REST API (a reusable workflow can't request a scope the caller didn't grant)
+    uses: ./.github/workflows/gate.yml
+    with:
+      adapter: docs-only
+      license_side: agpl-core

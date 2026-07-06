@@ -1,0 +1,7 @@
+# Synthetic finding representing `npm audit` flagging GHSA-p6mc-m468-83gw
+# (Prototype Pollution, high) in lodash@4.17.15 (see ../node/package.json)
+# - a real, independently-verified vulnerability (see ../README.md).
+# Hand-authored, not real scanner output - same convention as
+# tests/fixtures/security-baseline/*.findings (T014). See
+# .github/actions/run-gate/security-baseline.sh's FINDING FORMAT header.
+high	GHSA-p6mc-m468-83gw|lodash@4.17.15

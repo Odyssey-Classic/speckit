@@ -1,0 +1,5 @@
+# known-vuln-dep: the target branch (main) has NO findings - this PR is
+# what introduces lodash@4.17.15, so node-current.findings'
+# GHSA-p6mc-m468-83gw finding classifies as NEW and, at/above the
+# policy's security.threshold.min_severity_block (high), BLOCKS. Contrast
+# with ../../preexisting-vuln-only/findings/node-baseline.findings.

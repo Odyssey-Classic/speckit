@@ -1,0 +1,3 @@
+# Stub changed-files list: only docs changed, nothing user-facing — should
+# PASS trivially (no user-facing change to require docs for).
+docs/widget.md

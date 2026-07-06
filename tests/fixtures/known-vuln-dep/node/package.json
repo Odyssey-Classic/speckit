@@ -1,0 +1,13 @@
+{
+  "name": "vuln-dep-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gate fixture: Node/non-Go variant declaring a real known-vulnerable dependency (lodash@4.17.15, GHSA-p6mc-m468-83gw, high).",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "lodash": "4.17.15"
+  }
+}

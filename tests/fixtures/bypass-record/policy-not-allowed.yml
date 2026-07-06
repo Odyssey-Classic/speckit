@@ -1,0 +1,15 @@
+# tests/fixtures/bypass-record/policy-not-allowed.yml
+#
+# Same shape as policy.yml, except bypass.allowed is false. Used by
+# tests/unit/test_check_bypass_record.bats to prove check-bypass-record.sh
+# rejects EVERY bypass — even one carrying a complete, well-formed record —
+# once policy itself disallows bypass (FR-006: "silent bypass MUST NOT be
+# possible" cuts both ways: a complete record must not be mistaken for
+# permission to bypass when policy says no bypass is permitted at all).
+
+policy_version: "0.0.0-test"
+
+bypass:
+  allowed: false
+  requires: admin-override
+  must_record: [actor, reason]

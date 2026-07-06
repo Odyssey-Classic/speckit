@@ -1,0 +1,30 @@
+# tests/fixtures/run-gate/policy.yml
+#
+# Stub gate-policy for tests/unit/test_run_gate.bats (T013) — shape follows
+# policy/gate-policy.yml (contracts/gate-policy.schema.md) but is standalone
+# so the unit test never depends on (or is broken by) edits to the real
+# policy file. security.threshold.min_severity_block: high is what
+# run-gate.sh must read at runtime and pass to the security hook (carried
+# review note: never trust an adapter-hardcoded severity flag).
+
+policy_version: "0.0.0-test"
+
+categories:
+  - name: tests
+    required: true
+    threshold: { must_pass: all }
+
+  - name: quality
+    required: true
+    threshold: { must_pass: all, require_license_side: true }
+
+  - name: security
+    required: true
+    threshold:
+      min_severity_block: high
+      preexisting: surface
+      include: [dependencies, secrets, sast]
+
+  - name: docs
+    required: true
+    threshold: { require_docs_for_user_facing_change: true }

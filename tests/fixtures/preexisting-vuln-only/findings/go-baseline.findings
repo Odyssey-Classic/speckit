@@ -1,0 +1,6 @@
+# preexisting-vuln-only: the target branch (main) ALREADY has this exact
+# finding (same fingerprint as go-current.findings) - this PR did not
+# introduce golang.org/x/text@v0.3.5, so the finding classifies as
+# PREEXISTING and is SURFACED, never blocking on its own. Contrast with
+# ../../known-vuln-dep/findings/go-baseline.findings (empty there).
+high	GO-2022-1059|golang.org/x/text@v0.3.5

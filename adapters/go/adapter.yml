@@ -1,0 +1,55 @@
+# adapters/go/adapter.yml
+#
+# Go ecosystem adapter — configuration only (FR-003, SC-005). See
+# adapters/_template/adapter.yml for the full contract these hooks satisfy,
+# what fields mean, and what must never live here (thresholds, exemptions,
+# bypass logic — those belong solely to policy/gate-policy.yml).
+#
+# Reference consumer: `server` (Go 1.18) as the proving-ground rollout
+# (plan.md Repositories Affected, T050).
+
+adapter:
+  id: go
+  ecosystem: go
+
+hooks:
+  test:
+    description: "Go test suite with the race detector and coverage recorded (gate-policy category: tests)."
+    run: "go test ./... -race -cover"
+
+  lint:
+    description: "gofmt formatting check + go vet static analysis (gate-policy category: quality)."
+    run: |
+      test -z "$(gofmt -l .)"
+      go vet ./...
+
+  security:
+    description: >-
+      Dependency vulnerability scan (govulncheck, Go's official vuln DB)
+      plus a secret scan (gitleaks) — gate-policy security.include:
+      [dependencies, secrets, sast]. govulncheck's reachability analysis
+      also covers known-vulnerable call paths (the sast portion); it does
+      not replace go vet (see the lint hook).
+    run: |
+      govulncheck ./...
+      gitleaks detect --no-banner --redact
+
+  docs:
+    description: "Confirm required project documentation exists (gate-policy category: docs). Whether docs were UPDATED for a given change is a diff-based check enforced centrally (T020), not per-adapter."
+    run: "test -s README.md"
+
+  build:
+    description: "Reproducible build: pinned toolchain via go.mod, trimmed paths, no cgo (research.md D6)."
+    run: "CGO_ENABLED=0 go build -trimpath -o bin/app ./..."
+
+  version-embed:
+    description: >-
+      Reproducible build with the derived semver + commit SHA injected via
+      -ldflags -X (contracts/version-derivation.md "Artifact embedding").
+      $SEMVER and $SHA are supplied as environment variables by
+      derive-version (T028); the running binary reports them via
+      main.version / main.commit (R2).
+    run: |
+      CGO_ENABLED=0 go build -trimpath \
+        -ldflags "-X main.version=${SEMVER} -X main.commit=${SHA}" \
+        -o bin/app ./...
