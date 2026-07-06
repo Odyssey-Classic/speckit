@@ -1,0 +1,334 @@
+# tests/e2e/version-e2e.yml
+#
+# T027 (US2, Phase 4 Independent Test): the end-to-end harness that exercises
+# the `derive-version` composite action (.github/actions/derive-version, T028)
+# and the artifact version-embed round-trip (adapters/{go,node} version-embed
+# hooks, T029) on a real GitHub Actions runner. It proves US2's user-visible
+# promises (Scenario D, SC-002):
+#
+#   1. An UNTAGGED build is a prerelease (is_prerelease=true, pre_1_0=true).
+#   2. A TAGGED build is exact (derivation=exact-tag, is_prerelease=false).
+#   3. The built application REPORTS THE SAME VERSION its artifact carries —
+#      the derive -> embed -> run-and-report loop, end to end.
+#
+# Like every tests/e2e/*.yml, this file only ever *executes* on a runner;
+# there is no local harness for "does a composite action + real git +
+# go/node build behave as designed on GitHub's own infrastructure." The
+# offline half is already proven elsewhere and is NOT re-proven here:
+#
+# STATICALLY / LOCALLY PROVEN (before this file ever reaches a runner):
+#   - `actionlint tests/e2e/version-e2e.yml` — 0 findings.
+#   - The derivation ALGORITHM itself (every row of version-derivation.md,
+#     the -rc case, the R4 override, the pre-1.0 disclaimer) is unit-tested
+#     with bats against derive-version.sh directly, no runner required:
+#     tests/unit/test_version_derivation.bats (T025),
+#     tests/unit/test_pre_1_0.bats (T026).
+#
+# WHAT ONLY A RUNNER CAN PROVE (this file's job):
+#   - the composite action.yml wrapper plumbs inputs/outputs correctly,
+#   - a real `git describe` on a real repo yields what the unit tests assert
+#     against synthetic repos, and
+#   - the adapters' version-embed hooks, run verbatim, produce an artifact
+#     whose running form reports the embedded semver + commit_sha (SC-002).
+#
+# Every fixture repo is built fresh under $RUNNER_TEMP (never the checked-out
+# workspace), so this harness depends only on git + the preinstalled go/node/
+# yq on ubuntu-latest — no network, no committed fixture.
+
+name: Version E2E (derivation + embed round-trip)
+
+on:
+  pull_request:
+    paths:
+      - ".github/actions/derive-version/**"
+      - "adapters/**"
+      - "policy/versioning-policy.md"
+      - "tests/e2e/version-e2e.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read # secure-by-default floor (T011) — every job below gets at most this
+
+jobs:
+  # --- 1. Derivation across git states -------------------------------------
+  # One matrix leg per source state from contracts/version-derivation.md,
+  # driven through the real composite action (not the script directly) so the
+  # action.yml input/output wiring is exercised too.
+  derive-scenarios:
+    name: "Derive: ${{ matrix.state }} — expect ${{ matrix.expect_derivation }}"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - state: untagged
+            semver_re: '^0\.0\.0-1-g[0-9a-f]+$'
+            expect_derivation: git-describe
+            expect_prerelease: "true"
+            expect_pre_1_0: "true"
+            expect_disclaimer: present
+          - state: exact-1x
+            semver_re: '^1\.2\.3$'
+            expect_derivation: exact-tag
+            expect_prerelease: "false"
+            expect_pre_1_0: "false"
+            expect_disclaimer: absent
+          - state: describe-past-tag
+            semver_re: '^1\.2\.3-3-g[0-9a-f]+$'
+            expect_derivation: git-describe
+            expect_prerelease: "true"
+            expect_pre_1_0: "false"
+            expect_disclaimer: absent
+          - state: exact-0x
+            semver_re: '^0\.3\.0$'
+            expect_derivation: exact-tag
+            expect_prerelease: "false"
+            expect_pre_1_0: "true"
+            expect_disclaimer: present
+    steps:
+      - name: Checkout (sparse — derive-version action only)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            .github/actions/derive-version
+
+      - name: Build fixture repo for this state
+        env:
+          STATE: ${{ matrix.state }}
+          FIXTURE: ${{ runner.temp }}/fixture
+        run: |
+          set -euo pipefail
+          rm -rf "${FIXTURE}"
+          mkdir -p "${FIXTURE}"
+          git -C "${FIXTURE}" init -q -b main
+          git -C "${FIXTURE}" config user.email "tester@example.com"
+          git -C "${FIXTURE}" config user.name "Tester"
+          git -C "${FIXTURE}" config commit.gpgsign false
+          git -C "${FIXTURE}" config tag.gpgsign false
+          commit() { git -C "${FIXTURE}" commit -q --allow-empty -m "$1"; }
+          case "${STATE}" in
+            untagged)
+              commit "c1"
+              ;;
+            exact-1x)
+              commit "c1"; git -C "${FIXTURE}" tag v1.2.3
+              ;;
+            describe-past-tag)
+              commit "c1"; git -C "${FIXTURE}" tag v1.2.3
+              commit "p1"; commit "p2"; commit "p3"
+              ;;
+            exact-0x)
+              commit "c1"; git -C "${FIXTURE}" tag v0.3.0
+              ;;
+            *)
+              echo "::error::unknown state '${STATE}'"; exit 1 ;;
+          esac
+
+      - name: Derive version
+        id: derive
+        uses: ./.github/actions/derive-version
+        with:
+          repo: ${{ runner.temp }}/fixture
+
+      - name: "Assert: derivation outputs"
+        env:
+          STATE: ${{ matrix.state }}
+          SEMVER: ${{ steps.derive.outputs.semver }}
+          SEMVER_RE: ${{ matrix.semver_re }}
+          DERIVATION: ${{ steps.derive.outputs.derivation }}
+          WANT_DERIVATION: ${{ matrix.expect_derivation }}
+          PRERELEASE: ${{ steps.derive.outputs.is_prerelease }}
+          WANT_PRERELEASE: ${{ matrix.expect_prerelease }}
+          PRE_1_0: ${{ steps.derive.outputs.pre_1_0 }}
+          WANT_PRE_1_0: ${{ matrix.expect_pre_1_0 }}
+          DISCLAIMER: ${{ steps.derive.outputs.disclaimer }}
+          WANT_DISCLAIMER: ${{ matrix.expect_disclaimer }}
+        run: |
+          set -euo pipefail
+          echo "state=${STATE} semver=${SEMVER} derivation=${DERIVATION} is_prerelease=${PRERELEASE} pre_1_0=${PRE_1_0}"
+          fail=0
+          if ! printf '%s' "${SEMVER}" | grep -Eq "${SEMVER_RE}"; then
+            echo "::error::semver '${SEMVER}' does not match expected /${SEMVER_RE}/"; fail=1
+          fi
+          [ "${DERIVATION}" = "${WANT_DERIVATION}" ] || { echo "::error::derivation: want ${WANT_DERIVATION}, got ${DERIVATION}"; fail=1; }
+          [ "${PRERELEASE}" = "${WANT_PRERELEASE}" ] || { echo "::error::is_prerelease: want ${WANT_PRERELEASE}, got ${PRERELEASE}"; fail=1; }
+          [ "${PRE_1_0}" = "${WANT_PRE_1_0}" ] || { echo "::error::pre_1_0: want ${WANT_PRE_1_0}, got ${PRE_1_0}"; fail=1; }
+          case "${WANT_DISCLAIMER}" in
+            present) [ -n "${DISCLAIMER}" ] || { echo "::error::expected a pre-1.0 disclaimer, got none"; fail=1; } ;;
+            absent)  [ -z "${DISCLAIMER}" ] || { echo "::error::expected NO disclaimer, got '${DISCLAIMER}'"; fail=1; } ;;
+          esac
+          exit "${fail}"
+
+  # --- 2. Embed round-trip: the built app reports its embedded version ------
+  # For each adapter, run its version-embed hook VERBATIM (read from the
+  # adapter file with yq, exactly as run-gate reads a hook's `run:`) with the
+  # $SEMVER/$SHA that derive-version produced, then run the built artifact and
+  # assert it reports the same version — SC-002 end to end.
+  embed-roundtrip:
+    name: "Embed round-trip: ${{ matrix.adapter }}"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        adapter: [go, node]
+    steps:
+      - name: Checkout (sparse — derive-version action + adapters)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            .github/actions/derive-version
+            adapters
+
+      - name: Build a tagged fixture repo (v1.2.3)
+        env:
+          FIXTURE: ${{ runner.temp }}/fixture
+        run: |
+          set -euo pipefail
+          rm -rf "${FIXTURE}"
+          mkdir -p "${FIXTURE}"
+          git -C "${FIXTURE}" init -q -b main
+          git -C "${FIXTURE}" config user.email "tester@example.com"
+          git -C "${FIXTURE}" config user.name "Tester"
+          git -C "${FIXTURE}" config commit.gpgsign false
+          git -C "${FIXTURE}" config tag.gpgsign false
+          git -C "${FIXTURE}" commit -q --allow-empty -m "c1"
+          git -C "${FIXTURE}" tag v1.2.3
+
+      - name: Derive version
+        id: derive
+        uses: ./.github/actions/derive-version
+        with:
+          repo: ${{ runner.temp }}/fixture
+
+      - name: Scaffold the minimal app for this ecosystem
+        env:
+          ADAPTER: ${{ matrix.adapter }}
+          APP: ${{ runner.temp }}/app
+        run: |
+          set -euo pipefail
+          rm -rf "${APP}"; mkdir -p "${APP}"
+          case "${ADAPTER}" in
+            go)
+              cd "${APP}"
+              go mod init version-e2e-app >/dev/null
+              cat > main.go <<'GO'
+          package main
+
+          import "fmt"
+
+          // Populated at build time via -ldflags -X (the go adapter's
+          // version-embed hook) — contracts/version-derivation.md R2.
+          var version string
+          var commit string
+
+          func main() {
+          	fmt.Printf("version=%s commit=%s\n", version, commit)
+          }
+          GO
+              ;;
+            node)
+              cd "${APP}"
+              cat > package.json <<'JSON'
+          {
+            "name": "version-e2e-app",
+            "version": "0.0.0",
+            "private": true,
+            "type": "module",
+            "scripts": {
+              "build": "node build.mjs"
+            }
+          }
+          JSON
+              # A real, offline `npm ci` needs a lockfile that matches; with
+              # zero dependencies `npm install` materializes one instantly and
+              # without network, then the hook's own `npm ci` re-validates it.
+              npm install --no-audit --no-fund >/dev/null 2>&1
+              # The "build" the adapter invokes: read the generated version
+              # module and emit a runnable app that reports it. This stands in
+              # for a real bundler (tsc/vite) — the point under test is that
+              # the embedded constants survive the build into the running app.
+              cat > build.mjs <<'MJS'
+          import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+          const ts = readFileSync('src/generated/version.ts', 'utf8');
+          const version = ts.match(/VERSION\s*=\s*"([^"]*)"/)[1];
+          const commit = ts.match(/COMMIT_SHA\s*=\s*"([^"]*)"/)[1];
+          mkdirSync('dist', { recursive: true });
+          writeFileSync('dist/app.mjs',
+            `console.log(\`version=${version} commit=${commit}\`);\n`);
+          MJS
+              ;;
+          esac
+
+      - name: Run the adapter's version-embed hook (verbatim) with derived version
+        env:
+          ADAPTER_FILE: adapters/${{ matrix.adapter }}/adapter.yml
+          APP: ${{ runner.temp }}/app
+          SEMVER: ${{ steps.derive.outputs.semver }}
+          SHA: ${{ steps.derive.outputs.commit_sha }}
+        run: |
+          set -euo pipefail
+          cmd="$(yq -e '.hooks.version-embed.run' "${ADAPTER_FILE}")"
+          echo "version-embed hook:"; printf '%s\n' "${cmd}"
+          cd "${APP}"
+          # SEMVER and SHA are exported so the hook body (which references
+          # ${SEMVER}/${SHA}) resolves them, exactly as a release job would.
+          export SEMVER SHA
+          bash -c "${cmd}"
+
+      - name: "Assert: the built app reports the embedded version (SC-002)"
+        env:
+          ADAPTER: ${{ matrix.adapter }}
+          APP: ${{ runner.temp }}/app
+          WANT_SEMVER: ${{ steps.derive.outputs.semver }}
+          WANT_SHA: ${{ steps.derive.outputs.commit_sha }}
+        run: |
+          set -euo pipefail
+          cd "${APP}"
+          case "${ADAPTER}" in
+            go)   out="$(./bin/app)" ;;
+            node) out="$(node dist/app.mjs)" ;;
+          esac
+          echo "app reported: ${out}"
+          if [ "${out}" != "version=${WANT_SEMVER} commit=${WANT_SHA}" ]; then
+            echo "::error::${ADAPTER} app did not report the embedded version — want 'version=${WANT_SEMVER} commit=${WANT_SHA}', got '${out}'."
+            exit 1
+          fi
+
+  # --- 3. Static invariants (evaluated on every run, offline) ---------------
+  static-checks:
+    name: "Static: version pipeline invariants"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: This harness holds itself to the contents:read floor
+        run: |
+          set -euo pipefail
+          perms=$(yq -o=json -I=0 '.permissions' tests/e2e/version-e2e.yml)
+          echo "version-e2e.yml top-level permissions: ${perms}"
+          if [ "${perms}" != '{"contents":"read"}' ]; then
+            echo "::error::version-e2e.yml's top-level permissions must be exactly {contents: read} (docs/cicd/secure-defaults.md Sec. 1.1) — found: ${perms}"
+            exit 1
+          fi
+
+      - name: derive-version never takes a human version that is not a tag
+        run: |
+          set -euo pipefail
+          # R4 / FR-010: the only override path must verify the tag EXISTS.
+          # Guard that the existence check is present so a future edit can't
+          # silently let a hand-typed number through.
+          if ! grep -q 'refs/tags/' .github/actions/derive-version/derive-version.sh; then
+            echo "::error::derive-version.sh must verify a --version override names an existing tag (refs/tags/…) — R4."
+            exit 1
+          fi
+          echo "derive-version.sh: --version override is tag-anchored (R4) — ok."
