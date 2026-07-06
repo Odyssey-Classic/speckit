@@ -63,14 +63,9 @@ jobs:
           - ''
           # allow for some parallelity without GNU parallel, since it is not installed by default
           - 'BATS_NO_PARALLELIZE_ACROSS_FILES=1 BATS_NUMBER_OF_PARALLEL_JOBS=2'
-          - 'BATS_PARALLEL_BINARY_NAME=rush'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      - name: Install rush
-        run: |
-          curl -sSfL https://github.com/shenwei356/rush/releases/download/v0.5.0/rush_linux_amd64.tar.gz | sudo tar xzf - -C /usr/local/bin
-        if: contains(matrix.env_vars, 'rush')
       - name: Run test on OS ${{ matrix.os }}
         shell: 'script -q -e -c "bash {0}"' # work around tty issues
         env:
@@ -143,16 +138,11 @@ jobs:
           - ''
           # allow for some parallelity without GNU parallel, since it is not installed by default
           - 'BATS_NO_PARALLELIZE_ACROSS_FILES=1 BATS_NUMBER_OF_PARALLEL_JOBS=2'
-          - 'BATS_PARALLEL_BINARY_NAME=rush'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: Install unbuffer via expect
         run: brew install expect
-      - name: Install rush
-        run: |
-          curl -sSfL https://github.com/shenwei356/rush/releases/download/v0.5.0/rush_darwin_amd64.tar.gz | sudo tar xzf - -C /usr/local/bin
-        if: contains(matrix.env_vars, 'rush')
 
       - name: Check failing tests fail suite,
         shell: 'unbuffer bash {0}' # work around tty issues
