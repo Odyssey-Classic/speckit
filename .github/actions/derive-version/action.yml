@@ -1,0 +1,84 @@
+# .github/actions/derive-version/action.yml
+#
+# T028 (US2) — the `derive-version` composite action. Computes an application's
+# version from git alone (contracts/version-derivation.md, FR-008/009/010): the
+# release workflow (release.yml, T035) and any build that embeds a version call
+# this once, then feeds the `semver` + `commit_sha` outputs to an adapter's
+# `version-embed` hook (adapters/{go,node}/adapter.yml) as $SEMVER / $SHA.
+#
+# WHY THE LOGIC IS A SEPARATE SCRIPT
+#   The whole derivation algorithm lives in derive-version.sh so it is
+#   unit-testable with bats (tests/unit/test_version_derivation.bats T025,
+#   tests/unit/test_pre_1_0.bats T026) without a GitHub Actions runner. This
+#   action.yml is a thin, injection-safe wrapper: every input is passed through
+#   `env:` and read as a shell variable inside `run:` — never interpolated as
+#   `${{ inputs.* }}` directly into the script body — matching the pattern
+#   established by .github/actions/run-gate/action.yml and harden/action.yml.
+#
+# Reference caller (once T035 lands):
+#   - name: Derive version
+#     id: version
+#     uses: ./.github/actions/derive-version
+#   - name: Build with embedded version
+#     env:
+#       SEMVER: ${{ steps.version.outputs.semver }}
+#       SHA: ${{ steps.version.outputs.commit_sha }}
+#     run: ...   # adapter version-embed hook
+
+name: "Derive Version"
+description: >-
+  Derives an application's version from git alone (git describe) — no human
+  input, dirty builds fail — and exposes semver, commit_sha, derivation,
+  is_prerelease, pre_1_0, and the pre-1.0 compatibility disclaimer.
+
+inputs:
+  repo:
+    description: >-
+      Path to the git repository to derive from. Defaults to the checked-out
+      workspace root.
+    required: false
+    default: "."
+  version:
+    description: >-
+      Optional override: pin the version to an EXISTING SemVer tag (e.g.
+      v1.2.3). Rejected if the tag does not exist — no path lets a human supply
+      a number not anchored to a tag (contracts/version-derivation.md R4).
+    required: false
+    default: ""
+
+outputs:
+  semver:
+    description: "The derived MAJOR.MINOR.PATCH[-prerelease] version."
+    value: ${{ steps.derive.outputs.semver }}
+  commit_sha:
+    description: "The full 40-hex commit the version was derived from."
+    value: ${{ steps.derive.outputs.commit_sha }}
+  derivation:
+    description: "How it was derived: exact-tag or git-describe."
+    value: ${{ steps.derive.outputs.derivation }}
+  is_prerelease:
+    description: "true for a git-describe build or a prerelease tag; false for a clean release tag."
+    value: ${{ steps.derive.outputs.is_prerelease }}
+  pre_1_0:
+    description: "true when MAJOR == 0 (triggers the compatibility disclaimer)."
+    value: ${{ steps.derive.outputs.pre_1_0 }}
+  disclaimer:
+    description: "The pre-1.0 compatibility disclaimer text when pre_1_0, else empty."
+    value: ${{ steps.derive.outputs.disclaimer }}
+
+runs:
+  using: composite
+  steps:
+    - name: Derive version from git
+      id: derive
+      shell: bash
+      env:
+        DERIVE_VERSION_REPO: ${{ inputs.repo }}
+        DERIVE_VERSION_OVERRIDE: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        args=(--repo "${DERIVE_VERSION_REPO}")
+        if [ -n "${DERIVE_VERSION_OVERRIDE}" ]; then
+          args+=(--version "${DERIVE_VERSION_OVERRIDE}")
+        fi
+        "${GITHUB_ACTION_PATH}/derive-version.sh" "${args[@]}"

@@ -89,16 +89,16 @@ description: "Task list for CI/CD Pipeline, Versioning & Release Process"
 
 ### Tests for User Story 2 (REQUIRED) ⚠️
 
-- [ ] T025 [P] [US2] bats tests `tests/unit/test_version_derivation.bats` — every row of `contracts/version-derivation.md` (exact-tag, git-describe, no-tags, dirty→fail) (FR-008, FR-010)
-- [ ] T026 [P] [US2] bats test `tests/unit/test_pre_1_0.bats` — `MAJOR == 0` attaches the compatibility disclaimer to version output + notes (FR-011, R3)
-- [ ] T027 [US2] e2e `tests/e2e/version-e2e.yml` — untagged build is prerelease, tagged build is exact, and the built app reports the same version its artifact carries (Scenario D, SC-002)
+- [X] T025 [P] [US2] bats tests `tests/unit/test_version_derivation.bats` — every row of `contracts/version-derivation.md` (exact-tag, git-describe, no-tags, dirty→fail) (FR-008, FR-010)
+- [X] T026 [P] [US2] bats test `tests/unit/test_pre_1_0.bats` — `MAJOR == 0` attaches the compatibility disclaimer to version output + notes (FR-011, R3)
+- [X] T027 [US2] e2e `tests/e2e/version-e2e.yml` — untagged build is prerelease, tagged build is exact, and the built app reports the same version its artifact carries (Scenario D, SC-002)
 
 ### Implementation for User Story 2
 
-- [ ] T028 [US2] Implement the `derive-version` composite `.github/actions/derive-version/action.yml` — `git describe` algorithm, no human input, dirty build fails (FR-008, FR-009, FR-010, R1)
-- [ ] T029 [P] [US2] Artifact version + `commit_sha` embedding and a mandatory version report in `adapters/go` and `adapters/node` (R2, SC-002)
-- [ ] T030 [US2] pre-1.0 compatibility disclaimer wired into version output and release notes (FR-011, R3)
-- [ ] T031 [P] [US2] Author `policy/versioning-policy.md` — project-wide SemVer rules + the pre-1.0 disclosure requirement (FR-008, FR-011, Constitution VI)
+- [X] T028 [US2] Implement the `derive-version` composite `.github/actions/derive-version/action.yml` — `git describe` algorithm, no human input, dirty build fails (FR-008, FR-009, FR-010, R1)
+- [X] T029 [P] [US2] Artifact version + `commit_sha` embedding and a mandatory version report in `adapters/go` and `adapters/node` (R2, SC-002)
+- [X] T030 [US2] pre-1.0 compatibility disclaimer wired into version output and release notes (FR-011, R3)
+- [X] T031 [P] [US2] Author `policy/versioning-policy.md` — project-wide SemVer rules + the pre-1.0 disclosure requirement (FR-008, FR-011, Constitution VI)
 
 **Checkpoint**: Builds in any repo produce traceable, deterministic versions consumable by releases.
 
